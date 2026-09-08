@@ -4,12 +4,12 @@ Interactive FlowStory panel for the AgentOps talk. Not slides.
 
 ## On stage (default)
 
-Split screen: **OpenClaw Control UI** (primary) + **[v3/live.html](v3/live.html)** (secondary).
+Split screen: **OpenClaw Control UI** (primary) + **[v5/live.html](v5/live.html)** (secondary).
 
 ```bash
 # Preflight + static UI + local observability proxy (required for live companion)
 ./scripts/demo-presenter-serve.sh
-# http://127.0.0.1:8765/demo/v3/live.html
+# http://127.0.0.1:8765/demo/v5/live.html
 
 # Preflight only (oc/openshell/sandbox/gateway + port check)
 ./scripts/demo-presenter-serve.sh --check-only
@@ -17,7 +17,7 @@ Split screen: **OpenClaw Control UI** (primary) + **[v3/live.html](v3/live.html)
 
 Requires logged-in `oc` and `openshell`. Fails fast if ports `8765`/`8766` are already in use (free with `lsof -ti :8765 | xargs kill`).
 
-**v3 step nav:** step **0 Overall Demo** embeds the full stack map in-card; steps **A–D** (C/D split into before/after) mount in-card FlowStory canvas maps, copy-paste prompts, YAML diff panels on Change 1/2, cluster observability, and script runner on C-after / D-after.
+**v5 step nav:** step **0 Overall Demo** embeds the full stack map in-card; steps **A–D** (C/D split into before/after) mount in-card FlowStory canvas maps, copy-paste prompts, on-screen instructions, YAML diff panels on Change 1/2, cluster observability, and script runner on C-after / D-after.
 
 | Keyboard | Action |
 |----------|--------|
@@ -62,22 +62,22 @@ python3 -m http.server 8765
 # http://127.0.0.1:8765/demo/index.html
 ```
 
-The [launcher](index.html) links to v3 and lists deprecated flows for reference.
+The [launcher](index.html) links to v5 and lists deprecated flows for reference.
 
 ## Structure
 
 ```
 docs/demo/
-├── index.html                      # Launcher (v3 recommended)
+├── index.html                      # Launcher (v5 recommended)
 ├── index.css
 ├── overall-in-doc.css              # Shared in-card embed chrome
-├── overall-demo-architecture.html  # Deprecated standalone map (use v3 step 0)
+├── overall-demo-architecture.html  # Deprecated standalone map (use v5 step 0)
 ├── layers-logos.html               # Deprecated legacy map with logos
 ├── scenarios/                      # FlowStory data + deprecated standalone test pages
 │   ├── shared-scenario.js
 │   ├── scenario-layout.js          # Pure layout constants (unit-test import)
 │   ├── overall-flows.js            # OVERALL_SCENARIO_* flow definitions
-│   ├── overall-diagram-config.js   # buildScenarioPageDiagram() for v3/v4 embeds
+│   ├── overall-diagram-config.js   # buildScenarioPageDiagram() for v3–v5 embeds
 │   ├── overall-response-maps.js
 │   ├── scenario-responses.js       # Inline responses for deprecated test-c/d pages
 │   ├── test-a-credentials.html     # Deprecated standalone (dev/rehearsal)
@@ -85,29 +85,30 @@ docs/demo/
 │   ├── test-c-egress.html
 │   └── test-d-guardrails.html
 ├── shared/                         # vendor/, assets/, demo.css, proxy-offline-toast.js
-├── v1/                             # Shared narrative + observability modules (used by v3/v4)
+├── v1/                             # Shared narrative + observability modules (used by v3–v5)
 │   ├── live.html                   # Deprecated UI shell
-│   ├── narrative.css               # Base styles (imported by v3)
+│   ├── narrative.css               # Base styles (imported by v3–v5)
 │   ├── narrative-data.js           # Step nav, prompts, observability step config
 │   ├── narrative-ui.js
 │   ├── observability-panel.js
 │   └── observability-log-rules.js
 ├── v2/                             # Deprecated UI shell + layout lab
-├── v3/                             # Recommended live companion
-│   ├── live.html
-│   ├── narrative-v3.css
-│   ├── narrative-v3-ui.js
-│   ├── overall-embed.js
-│   ├── scenario-canvas-embed.js
-│   ├── scenario-canvas-config.js
-│   ├── in-doc-embed-html.js
-│   └── script-runner.js
-└── v4/                             # Experimental compact canvas (not for live demos)
+├── v3/                             # Deprecated live companion (superseded by v5)
+├── v4/                             # Deprecated compact canvas variant
+└── v5/                             # Recommended live companion
+    ├── live.html
+    ├── narrative-v5.css
+    ├── narrative-v5-ui.js
+    ├── overall-embed.js
+    ├── scenario-canvas-embed.js
+    ├── scenario-canvas-config.js
+    ├── in-doc-embed-html.js
+    └── script-runner.js
 ```
 
 ## Cluster observability
 
-`v3/live.html` shows live cluster logs and MLflow traces when the local proxy is running (`demo-presenter-serve.sh` binds UI `:8765` + proxy `:8766`).
+`v5/live.html` shows live cluster logs and MLflow traces when the local proxy is running (`demo-presenter-serve.sh` binds UI `:8765` + proxy `:8766`).
 
 | Component | Proxy endpoint | Cluster source | Tail lines |
 |-----------|----------------|----------------|------------|
@@ -133,15 +134,15 @@ Proxy: [`scripts/demo-observability-proxy.py`](../../scripts/demo-observability-
 | Module | Role |
 |--------|------|
 | [`scenarios/overall-flows.js`](scenarios/overall-flows.js) | `OVERALL_SCENARIO_*` hop definitions for all flows |
-| [`scenarios/overall-diagram-config.js`](scenarios/overall-diagram-config.js) | `buildScenarioPageDiagram()` — used by v3/v4 in-card embeds |
+| [`scenarios/overall-diagram-config.js`](scenarios/overall-diagram-config.js) | `buildScenarioPageDiagram()` — used by v3–v5 in-card embeds |
 | [`scenarios/overall-response-maps.js`](scenarios/overall-response-maps.js) | Inference/trace response offsets on the overall map |
 | [`v1/narrative-data.js`](v1/narrative-data.js) | Live companion step nav, prompts, observability focus per step |
 
-Deprecated standalone `test-*` pages: A/B use `buildScenarioPageDiagram()`; C/D still use inline definitions in [`scenario-responses.js`](scenarios/scenario-responses.js). Prefer v3 step nav for rehearsal — same flows, single panel.
+Deprecated standalone `test-*` pages: A/B use `buildScenarioPageDiagram()`; C/D still use inline definitions in [`scenario-responses.js`](scenarios/scenario-responses.js). Prefer v5 step nav for rehearsal — same flows, single panel.
 
 ## CSS conventions
 
-Presentation styles live in external `.css` files — no `<style>` blocks or `style="..."` in HTML/JS templates. Shared FlowStory chrome: `shared/demo.css`; launcher: `index.css`; live companion: `v1/narrative.css` + `v3/narrative-v3.css` (v4: `narrative-v4.css`).
+Presentation styles live in external `.css` files — no `<style>` blocks or `style="..."` in HTML/JS templates. Shared FlowStory chrome: `shared/demo.css`; launcher: `index.css`; live companion: `v1/narrative.css` + `v5/narrative-v5.css`.
 
 Validate after edits:
 
@@ -170,7 +171,7 @@ Cursor: rule `.cursor/rules/demo-ui-tests.mdc`, skill `demo-ui-tests`. Pure layo
 
 ## README architecture image
 
-The repo root [README.md](../../README.md) embeds a static PNG of the v3 live companion step **Overall Demo** ([v3/live.html](v3/live.html)). Regenerate after edits to `scenarios/overall-diagram-config.js`, `overall-flows.js`, or related FlowStory layout:
+The repo root [README.md](../../README.md) embeds a static PNG of the v5 live companion step **Overall Demo** ([v5/live.html](v5/live.html)). Regenerate after edits to `scenarios/overall-diagram-config.js`, `overall-flows.js`, or related FlowStory layout:
 
 ```bash
 make export-architecture
@@ -181,16 +182,17 @@ Output: [`assets/overall-architecture.png`](../../assets/overall-architecture.pn
 
 ## Deprecated (dev / bookmarks only)
 
-Do not use these on stage — v3 embeds the same maps in-card.
+Do not use these on stage — v5 embeds the same maps in-card.
 
 | Page | URL | Notes |
 |------|-----|-------|
-| Standalone architecture map | [overall-demo-architecture.html](overall-demo-architecture.html) | Superseded by v3 step **Overall Demo** |
+| Standalone architecture map | [overall-demo-architecture.html](overall-demo-architecture.html) | Superseded by v5 step **Overall Demo** |
 | Legacy map with logos | [layers-logos.html](layers-logos.html) | Early FlowStory prototype |
-| Standalone test A–D | [scenarios/test-a-credentials.html](scenarios/test-a-credentials.html) … D | Superseded by v3 steps A–D |
+| Standalone test A–D | [scenarios/test-a-credentials.html](scenarios/test-a-credentials.html) … D | Superseded by v5 steps A–D |
 | Live companion v1 | [v1/live.html](v1/live.html) | Split panel; script runner shows commands as text only |
 | Live companion v2 | [v2/live.html](v2/live.html) | Compact panel + layout lab (`?layout=`) |
-| Live companion v4 | [v4/live.html](v4/live.html) | Experimental compact canvas — use v3 for live demos |
+| Live companion v3 | [v3/live.html](v3/live.html) | Previous recommended companion — superseded by v5 |
+| Live companion v4 | [v4/live.html](v4/live.html) | Compact canvas variant — superseded by v5 |
 
 ## Cursor skills
 

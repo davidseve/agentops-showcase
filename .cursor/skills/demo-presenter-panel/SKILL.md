@@ -1,7 +1,7 @@
 ---
 name: demo-presenter-panel
 description: >-
-  Serve and open the v3 live companion (docs/demo/v3/live.html) for demo-narrative-v1.
+  Serve and open the v5 live companion (docs/demo/v5/live.html) for demo-narrative-v1.
   Use when starting the architecture walk-through, opening demo panels,
   pantalla partida, or docs/demo presentation UI.
 ---
@@ -49,15 +49,14 @@ Requires logged-in `oc` and `openshell` on the presenter's workstation. The prox
 
 | Page | URL | When |
 |---|---|---|
-| Live companion (v3) | `http://127.0.0.1:8765/demo/v3/live.html` | **On stage** — step 0 embeds overall map; A–D in-card FlowStory + observability + script runner |
-| Live companion (v4) | `http://127.0.0.1:8765/demo/v4/live.html` | Experimental compact canvas — not for live demos |
-| Launcher | `http://127.0.0.1:8765/demo/index.html` | Offline rehearsal; links to v3, v4, and deprecated flows |
+| Live companion (v5) | `http://127.0.0.1:8765/demo/v5/live.html` | **On stage** — step 0 embeds overall map; A–D in-card FlowStory + observability + script runner |
+| Launcher | `http://127.0.0.1:8765/demo/index.html` | Offline rehearsal; links to v5 and deprecated flows |
 
-Deprecated (dev/bookmarks only): `overall-demo-architecture.html`, `scenarios/test-*.html`, `v1/live.html`, `v2/live.html`. See [`docs/demo/README.md`](../../docs/demo/README.md) § Deprecated.
+Deprecated (dev/bookmarks only): `v1/live.html` … `v4/live.html`, `overall-demo-architecture.html`, `scenarios/test-*.html`. See [`docs/demo/README.md`](../../docs/demo/README.md) § Deprecated.
 
-## Cluster observability (v3)
+## Cluster observability (v5)
 
-When using `demo-presenter-serve.sh`, `v3/live.html` includes a **Cluster observability** panel below the step card (shared modules under `v1/`):
+When using `demo-presenter-serve.sh`, `v5/live.html` includes a **Cluster observability** panel below the step card (shared modules under `v1/`):
 
 | Tab | Source |
 |---|---|
@@ -67,16 +66,16 @@ When using `demo-presenter-serve.sh`, `v3/live.html` includes a **Cluster observ
 | NeMo Guardrails | TrustyAI-managed pod (`nemo-guardrails-*`) |
 | MLflow | Recent traces from experiment `openclaw-tracing` |
 
-The panel polls `http://127.0.0.1:8766` and suggests a tab when you advance demo steps (A/B → OpenClaw, C → OpenShell, D → NeMo). Open the **MLflow** tab from the panel at any scenario step to review traces (no dedicated ML nav item in v3/v4). Per tab: **↓** pauses live updates (remembered per component).
+The panel polls `http://127.0.0.1:8766` and suggests a tab when you advance demo steps (A/B → OpenClaw, C → OpenShell, D → NeMo). Open the **MLflow** tab from the panel at any scenario step to review traces (no dedicated ML nav item in v5). Per tab: **↓** pauses live updates (remembered per component).
 
 ## Split screen layout
 
 | Window | Content |
 |---|---|
 | Primary | OpenClaw Control UI (`https://openclaw-gw--openclaw-ui.<APPS_DOMAIN>/`) |
-| Secondary | `v3/live.html` — copy prompts; embedded FlowStory maps update on step nav |
+| Secondary | `v5/live.html` — copy prompts; embedded FlowStory maps update on step nav |
 
-## Embedded map controls (v3)
+## Embedded map controls (v5)
 
 | Control | Action |
 |---|---|
@@ -84,9 +83,9 @@ The panel polls `http://127.0.0.1:8766` and suggests a tab when you advance demo
 | `←` / `→` / clicker | Advance hops within the embedded FlowStory canvas |
 | Layer board | Updates per step — egress closed/open, guardrails off/on |
 
-## Layer board (v3 embedded maps)
+## Layer board (v5 embedded maps)
 
-`v3/live.html` step 0 and scenario tabs mount FlowStory maps that update layer state when advancing steps:
+`v5/live.html` step 0 and scenario tabs mount FlowStory maps that update layer state when advancing steps:
 
 | After | Update |
 |---|---|

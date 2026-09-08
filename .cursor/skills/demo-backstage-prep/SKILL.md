@@ -73,8 +73,7 @@ Use `demo-presenter-panel` skill or:
 
 The script prints URLs when ready:
 
-- Live companion (v3, recommended): `http://127.0.0.1:8765/demo/v3/live.html`
-- Live companion (v4, experimental): `http://127.0.0.1:8765/demo/v4/live.html`
+- Live companion (v5, recommended): `http://127.0.0.1:8765/demo/v5/live.html`
 - Launcher: `http://127.0.0.1:8765/demo/index.html`
 
 If port `8765` or `8766` is already in use: `lsof -ti :8765 | xargs kill` (or `:8766`).
@@ -85,7 +84,7 @@ If port `8765` or `8766` is already in use: `lsof -ti :8765 | xargs kill` (or `:
 https://openclaw-gw--openclaw-ui.<APPS_DOMAIN>/
 ```
 
-Split screen: Control UI + `v3/live.html`.
+Split screen: Control UI + `v5/live.html`.
 
 ### 5. Optional rehearsal reset
 
@@ -97,7 +96,7 @@ Then **New session** in Control UI before running tests A–D. Run `demo-reset.s
 
 ## Expected result
 
-- Browser targets ready: `v3/live.html` + Control UI
+- Browser targets ready: `v5/live.html` + Control UI
 - Sandbox on `default.yaml` (MLflow-only egress) with direct MaaS
 - No live config changes needed until Test C (`demo-allow-google-egress.sh`) and Test D (NeMo)
 

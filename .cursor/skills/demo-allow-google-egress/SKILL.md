@@ -34,7 +34,7 @@ Google egress allowed — curl to google.com should succeed; github.com remains 
 
 Repeat Test C prompt in Control UI — `curl -sI https://google.com` should succeed.
 
-Update `v3/live.html` step nav → egress **open** (selective allowlist; auto-updates).
+Update `v5/live.html` step nav → egress **open** (selective allowlist; auto-updates).
 
 ## Verify (optional, post-change)
 

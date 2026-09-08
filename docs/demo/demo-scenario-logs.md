@@ -10,14 +10,14 @@ This guide focuses on **runtime log evidence** — not FlowStory hop narration o
 
 ## How to access logs
 
-### v3 live companion (recommended)
+### v5 live companion (recommended)
 
 ```bash
 ./scripts/demo-presenter-serve.sh
-# http://127.0.0.1:8765/demo/v3/live.html  — Cluster observability panel
+# http://127.0.0.1:8765/demo/v5/live.html  — Cluster observability panel
 ```
 
-Deprecated: `v1/live.html`, `v2/live.html` (same proxy and panel implementation).
+Deprecated: `v1/live.html` … `v4/live.html` (same proxy and panel implementation).
 
 The panel polls the local proxy at `http://127.0.0.1:8766` ([`scripts/demo-observability-proxy.py`](../../scripts/demo-observability-proxy.py)). Requires logged-in `oc` and `openshell` on the presenter laptop; binds to `127.0.0.1` only.
 
@@ -60,7 +60,7 @@ oc -n openshell logs -l app.kubernetes.io/name=nemo-guardrails --tail=80
 ```mermaid
 flowchart LR
   subgraph presenter [Presenter laptop]
-    LivePanel[v3/live.html]
+    LivePanel[v5/live.html]
     Proxy[demo-observability-proxy]
   end
   subgraph cluster [OpenShift cluster]

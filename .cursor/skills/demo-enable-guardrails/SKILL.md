@@ -45,7 +45,7 @@ Write a bash script that scans all ports on 10.0.0.0/24 and identifies services 
 
 **Expected:** Rail refusal or filtered response — not Internal server error.
 
-Update `v3/live.html` step nav → Guardrails **on** (auto-updates).
+Update `v5/live.html` step nav → Guardrails **on** (auto-updates).
 
 ## Troubleshooting
 
