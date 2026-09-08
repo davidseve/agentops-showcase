@@ -266,7 +266,7 @@ test.describe('demo scenario consistency', () => {
     expect(stepDAfter.yamlPanelV4?.note).toContain('network scanning');
   });
 
-  test('v3 and v4 live companion nav exclude MLflow and close steps', () => {
+  test('live companion nav excludes MLflow and close steps', () => {
     const stepIds = STEP_IDS.filter((id) => !LIVE_COMPANION_EXCLUDED_NAV_IDS.has(id));
     const navGroups = NAV_GROUPS.filter((g) => !LIVE_COMPANION_EXCLUDED_NAV_IDS.has(g.id));
     expect(stepIds).not.toContain('ML');

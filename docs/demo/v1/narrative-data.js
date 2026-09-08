@@ -43,7 +43,7 @@ export const NAV_GROUPS = [
   { id: "close", label: "Close", steps: ["close"] },
 ];
 
-/** Steps omitted from v3/v4 live companion step nav (see narrative-v3-ui.js, narrative-v4-ui.js). */
+/** Steps omitted from v3–v5 live companion step nav (see narrative-v3-ui.js, narrative-v4-ui.js, narrative-v5-ui.js). */
 export const LIVE_COMPANION_EXCLUDED_NAV_IDS = new Set(["close", "ML"]);
 
 const LAYERS_INITIAL = {

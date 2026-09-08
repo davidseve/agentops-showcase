@@ -152,8 +152,9 @@ if mlflow_url:
     print(f"    MLflow UI: {mlflow_url}")
 print()
 print(f"    Launcher:            http://127.0.0.1:{http_port}/demo/index.html")
-print(f"    Live companion (v3, recommended): http://127.0.0.1:{http_port}/demo/v3/live.html")
-print(f"    Live companion (v4, experimental): http://127.0.0.1:{http_port}/demo/v4/live.html")
+print(f"    Live companion (v5, recommended): http://127.0.0.1:{http_port}/demo/v5/live.html")
+print(f"    Live companion (v3, deprecated):  http://127.0.0.1:{http_port}/demo/v3/live.html")
+print(f"    Live companion (v4, deprecated):  http://127.0.0.1:{http_port}/demo/v4/live.html")
 print(f"    Live companion (v1, deprecated):  http://127.0.0.1:{http_port}/demo/v1/live.html")
 print(f"    Live companion (v2, deprecated):  http://127.0.0.1:{http_port}/demo/v2/live.html")
 print(f"    Script runner API:   http://127.0.0.1:{proxy_port}/api/demo/run")
@@ -172,7 +173,7 @@ start_servers() {
   python3 "${PROXY_SCRIPT}" --port "${PROXY_PORT}" &
   PIDS+=("$!")
 
-  echo "==> Demo UI: http://127.0.0.1:${HTTP_PORT}/demo/v3/live.html (launcher: /demo/index.html)"
+  echo "==> Demo UI: http://127.0.0.1:${HTTP_PORT}/demo/v5/live.html (launcher: /demo/index.html)"
   (
     cd "${DOCS_DIR}"
     python3 -m http.server "${HTTP_PORT}"

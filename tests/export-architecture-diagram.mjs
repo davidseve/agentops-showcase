@@ -1,5 +1,5 @@
 /**
- * Export the v3 live companion step 0 (Overall Demo) FlowStory embed to assets/overall-architecture.png.
+ * Export the v5 live companion step 0 (Overall Demo) FlowStory embed to assets/overall-architecture.png.
  * Reveals all baseline hops (End-key equivalent) before capture. No cluster required.
  */
 import { chromium } from "@playwright/test";
@@ -14,9 +14,9 @@ const DOCS_DIR = path.join(ROOT_DIR, "docs");
 const OUTPUT_PATH = path.join(ROOT_DIR, "assets", "overall-architecture.png");
 
 const HTTP_PORT = Number(process.env.ARCH_DIAGRAM_HTTP_PORT || 18765);
-const PAGE_URL = `http://127.0.0.1:${HTTP_PORT}/demo/v3/live.html#step-0`;
+const PAGE_URL = `http://127.0.0.1:${HTTP_PORT}/demo/v5/live.html#step-0`;
 const VIEWPORT = { width: 1600, height: 1100 };
-const DIAGRAM_SELECTOR = ".nr-v3-overall-mounted .fs-overall-canvas-wrap";
+const DIAGRAM_SELECTOR = ".nr-v5-overall-mounted .fs-overall-canvas-wrap";
 
 const LAYERS_DOCK_MODE_KEY = "agentops-layers-dock-mode";
 const LAYERS_DOCK_VISIBLE_KEY = "agentops-layers-dock-visible";
@@ -100,8 +100,8 @@ async function exportDiagram() {
 
     await page.goto(PAGE_URL, { waitUntil: "networkidle" });
 
-    await page.waitForFunction(() => document.body.classList.contains("nr-v3-step-0"));
-    await page.waitForSelector(".nr-v3-overall-mounted", { state: "attached" });
+    await page.waitForFunction(() => document.body.classList.contains("nr-v5-step-0"));
+    await page.waitForSelector(".nr-v5-overall-mounted", { state: "attached" });
     await page.waitForFunction(() => Boolean(window.__flowstory?._canvas));
     await page.evaluate(() => document.body.classList.add("light"));
 

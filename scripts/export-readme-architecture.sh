@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Export docs/demo/v3/live.html step 0 (Overall Demo) to assets/overall-architecture.png (README).
+# Export docs/demo/v5/live.html step 0 (Overall Demo) to assets/overall-architecture.png (README).
 # CI validates this PNG on linux/amd64 — on macOS we re-export via Podman so bytes match GitHub Actions.
 set -euo pipefail
 
