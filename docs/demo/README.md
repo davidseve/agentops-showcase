@@ -178,7 +178,7 @@ make export-architecture
 # or: ./scripts/export-readme-architecture.sh
 ```
 
-Output: [`assets/overall-architecture.png`](../../assets/overall-architecture.png) (baseline flow with all hops revealed). CI re-exports and fails if the committed file is stale.
+Output: [`assets/overall-architecture.png`](../../assets/overall-architecture.png) (baseline flow with all hops revealed). Commit the PNG after regenerating — CI does not auto-export or validate it.
 
 ## Deprecated (dev / bookmarks only)
 

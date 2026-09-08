@@ -12,7 +12,7 @@ This project demonstrates the **BYOA (Bring Your Own Agent)** approach from the 
 
 ![AgentOps platform architecture](assets/overall-architecture.png)
 
-*Interactive map:* [v5/live.html](docs/demo/v5/live.html) step **Overall Demo** (`./scripts/demo-presenter-serve.sh`). Standalone reference: [`overall-demo-architecture.html`](docs/demo/overall-demo-architecture.html). Regenerate after diagram changes: `make export-architecture`.
+*Interactive map:* [v5/live.html](docs/demo/v5/live.html) step **Overall Demo** (`./scripts/demo-presenter-serve.sh`). Standalone reference: [`overall-demo-architecture.html`](docs/demo/overall-demo-architecture.html). Static PNG above: regenerate locally with `make export-architecture` after diagram edits.
 
 ## Platform Stack
 

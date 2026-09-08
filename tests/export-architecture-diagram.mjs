@@ -77,7 +77,7 @@ async function exportDiagram() {
         localStorage.setItem(modeKey, "off");
         localStorage.setItem(visibleKey, "false");
 
-        // Deterministic fonts for cross-platform PNG bytes (CI vs local export).
+        // Deterministic fonts for repeatable local exports.
         const style = document.createElement("style");
         style.textContent = `
           :root {
