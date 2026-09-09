@@ -168,7 +168,7 @@ agentops-showcase/
 │   └── skills/                    # Project-level Cursor agent skills
 ├── AGENTS.md                      # This file — AI agent context
 ├── README.md                      # Project overview, quick start
-├── assets/                        # Diagrams (overall-architecture.png for README; strategy-image.png)
+├── assets/                        # Diagrams (overall-architecture.png/.gif for README; strategy-image.png)
 ├── config/
 │   ├── openclaw.json.tpl          # OpenClaw harness config template
 │   └── openshell/                 # OpenShell sandbox policies (Landlock, egress)
@@ -216,6 +216,7 @@ agentops-showcase/
 │   ├── validate-demo-external-css.sh  # Lint docs/demo HTML/JS for external CSS only
 │   ├── validate-demo-ui.sh            # CSS lint + demo unit tests (no cluster)
 │   ├── export-readme-architecture.sh  # Playwright PNG for README (v5/live.html step 0)
+│   ├── export-readme-architecture-gif.sh  # Playwright frame capture + ffmpeg GIF (hops 0–6 default)
 │   ├── demo-observability-proxy.py
 │   ├── demo-enable-guardrails.sh  # Live demo Change 2: NeMo inference path
 │   ├── demo-disable-guardrails.sh # Reset to direct MaaS

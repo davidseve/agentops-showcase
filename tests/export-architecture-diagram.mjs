@@ -98,7 +98,7 @@ async function exportDiagram() {
       },
     );
 
-    await page.goto(PAGE_URL, { waitUntil: "networkidle" });
+    await page.goto(PAGE_URL, { waitUntil: "load" });
 
     await page.waitForFunction(() => document.body.classList.contains("nr-v5-step-0"));
     await page.waitForSelector(".nr-v5-overall-mounted", { state: "attached" });

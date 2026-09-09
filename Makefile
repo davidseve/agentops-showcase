@@ -11,12 +11,15 @@ DEPLOY_DIR := deploy
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-architecture
+.PHONY: help export-architecture export-architecture-gif
 help:
 	@$(MAKE) -C $(DEPLOY_DIR) help
 
 export-architecture:
 	@./scripts/export-readme-architecture.sh
+
+export-architecture-gif:
+	@./scripts/export-readme-architecture-gif.sh
 
 # Forward any other target to deploy/Makefile (demo, deploy-all, validate-full, …)
 %:

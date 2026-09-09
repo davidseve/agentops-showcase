@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Platform Stack preview — README</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.6.1/github-markdown-light.min.css">
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+  <style>
+    body {
+      background: #f6f8fa;
+      margin: 0;
+      padding: 2rem 1rem 4rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+    .banner {
+      max-width: 980px;
+      margin: 0 auto 1rem;
+      padding: 0.75rem 1rem;
+      background: #ddf4ff;
+      border: 1px solid #54aeff66;
+      border-radius: 6px;
+      color: #0969da;
+      font-size: 14px;
+    }
+    .markdown-body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+    }
+    .markdown-body table img { vertical-align: middle; }
+    .markdown-body .mermaid { text-align: center; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    Local preview of <strong>README.md § Platform Stack</strong> — mirrors GitHub rendering (Mermaid + badges + table).
+    Edit <code>README.md</code> and refresh; this file is for preview only.
+  </div>
+
+  <article class="markdown-body">
+    <h2>Platform Stack</h2>
+
+    <pre class="mermaid">
+flowchart TB
+  subgraph USER["USER LAYER"]
+    UI["End user → Control UI<br/>(openclaw-ui-proxy · nginx mTLS bridge)"]
+  end
+
+  subgraph AGENT["AGENT LAYER · BYOA"]
+    OC["OpenClaw harness<br/>Agent Sandbox · Landlock policies"]
+  end
+
+  subgraph PLATFORM["PLATFORM LAYER · Red Hat"]
+    GW["OpenShell Gateway — egress choke · key injection"]
+    ML["MLflow — tracing + prompt registry"]
+    NG["NeMo Guardrails · TrustyAI"]
+  end
+
+  subgraph INFERENCE["INFERENCE LAYER"]
+    IR["inference.local → NeMo → MaaS → LLM"]
+  end
+
+  subgraph INFRA["INFRASTRUCTURE"]
+    OCP["OpenShift + RHOAI 3.x · Agent Sandbox Operator (OLM)"]
+  end
+
+  USER --> AGENT --> PLATFORM --> INFERENCE --> INFRA
+    </pre>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Tag</th>
+          <th>Components</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>User</strong></td>
+          <td><img src="https://img.shields.io/badge/Control-UI-0066cc?style=flat-square" alt="Control UI"></td>
+          <td>Control UI via <code>openclaw-ui-proxy</code> (nginx mTLS bridge + password auth)</td>
+        </tr>
+        <tr>
+          <td><strong>Agent (BYOA)</strong></td>
+          <td><img src="https://img.shields.io/badge/Agent-BYOA-e00?style=flat-square" alt="BYOA"></td>
+          <td>OpenClaw in Agent Sandbox — interchangeable harness; Landlock + egress policies</td>
+        </tr>
+        <tr>
+          <td><strong>Platform</strong></td>
+          <td>
+            <img src="https://img.shields.io/badge/Platform-Red_Hat-ee0000?style=flat-square" alt="Red Hat">
+            <img src="https://img.shields.io/badge/Traces-MLflow-ffc107?style=flat-square&labelColor=333" alt="MLflow">
+          </td>
+          <td>OpenShell · MLflow · NeMo Guardrails (TrustyAI)</td>
+        </tr>
+        <tr>
+          <td><strong>Inference</strong></td>
+          <td><img src="https://img.shields.io/badge/Inference-MaaS-0066cc?style=flat-square" alt="MaaS"></td>
+          <td><code>inference.local</code> → MaaS — router injects API key; credentials never enter the sandbox</td>
+        </tr>
+        <tr>
+          <td><strong>Infrastructure</strong></td>
+          <td><img src="https://img.shields.io/badge/OpenShift-RHOAI-ee0000?style=flat-square" alt="RHOAI"></td>
+          <td>OCP + RHOAI 3.x — pinned operators; Agent Sandbox via OLM</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <blockquote>
+      <p><strong>BYOA:</strong> the agent harness is interchangeable; the platform stack works regardless of framework.<br>
+      <strong>Live map:</strong> <a href="../demo/v5/live.html">v5/live.html</a> step <strong>Overall Demo</strong> ·
+      <strong>Deep dive:</strong> <a href="../AGENT-SANDBOX-AND-OPENSHELL.md">Agent Sandbox and OpenShell — How It Works</a> ·
+      <strong>Full matrix:</strong> <a href="../../AGENTS.md#tech-stack">AGENTS.md § Tech Stack</a></p>
+    </blockquote>
+  </article>
+</body>
+</html>

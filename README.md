@@ -16,28 +16,43 @@ This project demonstrates the **BYOA (Bring Your Own Agent)** approach from the 
 
 ## Platform Stack
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ USER LAYER                                                  │
-│ End user → Control UI (openclaw-ui-proxy, nginx mTLS bridge)│
-├─────────────────────────────────────────────────────────────┤
-│ AGENT LAYER (BYOA — demo harness: OpenClaw)                 │
-│ OpenClaw in Agent Sandbox (OpenShell policies: Landlock)  │
-├─────────────────────────────────────────────────────────────┤
-│ PLATFORM LAYER (Red Hat)                                    │
-│ OpenShell Gateway (egress choke point, key injection)       │
-│ MLflow — tracing + prompt registry (background spans)       │
-│ NeMo Guardrails via TrustyAI (enabled live in Change 2)     │
-├─────────────────────────────────────────────────────────────┤
-│ INFERENCE LAYER                                             │
-│ inference.local → [NeMo] → MaaS → LLM (external MaaS)       │
-├─────────────────────────────────────────────────────────────┤
-│ INFRASTRUCTURE                                              │
-│ OpenShift + RHOAI 3.x · Agent Sandbox Operator (OLM)        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+  subgraph USER["USER LAYER"]
+    UI["End user → Control UI<br/>(openclaw-ui-proxy · nginx mTLS bridge)"]
+  end
+
+  subgraph AGENT["AGENT LAYER · BYOA"]
+    OC["OpenClaw harness<br/>Agent Sandbox · Landlock policies"]
+  end
+
+  subgraph PLATFORM["PLATFORM LAYER · Red Hat"]
+    GW["OpenShell Gateway — egress choke · key injection"]
+    ML["MLflow — tracing + prompt registry"]
+    NG["NeMo Guardrails · TrustyAI"]
+  end
+
+  subgraph INFERENCE["INFERENCE LAYER"]
+    IR["inference.local → NeMo → MaaS → LLM"]
+  end
+
+  subgraph INFRA["INFRASTRUCTURE"]
+    OCP["OpenShift + RHOAI 3.x · Agent Sandbox Operator (OLM)"]
+  end
+
+  USER --> AGENT --> PLATFORM --> INFERENCE --> INFRA
 ```
 
-The agent harness is interchangeable (BYOA); the platform stack works regardless of framework. Interactive architecture map (live): [v5/live.html](docs/demo/v5/live.html) step **Overall Demo**. Deep dive: [Agent Sandbox and OpenShell — How It Works](docs/AGENT-SANDBOX-AND-OPENSHELL.md).
+| Layer | Tag | Components |
+|---|---|---|
+| **User** | ![Control UI](https://img.shields.io/badge/Control-UI-0066cc?style=flat-square) | Control UI via `openclaw-ui-proxy` (nginx mTLS bridge + password auth) |
+| **Agent (BYOA)** | ![BYOA](https://img.shields.io/badge/Agent-BYOA-e00?style=flat-square) | OpenClaw in Agent Sandbox — interchangeable harness; Landlock + egress policies |
+| **Platform** | ![Red Hat](https://img.shields.io/badge/Platform-Red_Hat-ee0000?style=flat-square) ![MLflow](https://img.shields.io/badge/Traces-MLflow-ffc107?style=flat-square&labelColor=333) | OpenShell · MLflow · NeMo Guardrails (TrustyAI) |
+| **Inference** | ![MaaS](https://img.shields.io/badge/Inference-MaaS-0066cc?style=flat-square) | `inference.local` → MaaS — router injects API key; credentials never enter the sandbox |
+| **Infrastructure** | ![RHOAI](https://img.shields.io/badge/OpenShift-RHOAI-ee0000?style=flat-square) | OCP + RHOAI 3.x — pinned operators; Agent Sandbox via OLM |
+
+> **BYOA:** the agent harness is interchangeable; the platform stack works regardless of framework.
+> **Live map:** [v5/live.html](docs/demo/v5/live.html) step **Overall Demo** · **Deep dive:** [Agent Sandbox and OpenShell — How It Works](docs/AGENT-SANDBOX-AND-OPENSHELL.md) · **Full matrix:** [AGENTS.md § Tech Stack](AGENTS.md#tech-stack)
 
 ## Understanding the Platform
 
