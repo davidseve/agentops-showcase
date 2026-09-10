@@ -5,10 +5,11 @@
  *
  * Env:
  *   ARCH_GIF_FIRST_INDEX   — first jumpTo index (default 0)
- *   ARCH_GIF_LAST_INDEX    — last jumpTo index (default 6 = request path through LLM)
- *   ARCH_GIF_FRAME_DELAY_MS — wait after jumpTo before screenshot (default 700)
+ *   ARCH_GIF_LAST_INDEX    — last jumpTo index (default 22 = full baseline through MLflow)
+ *   ARCH_GIF_FRAME_DELAY_MS — wait after jumpTo before screenshot (default 900)
  *   ARCH_GIF_FPS           — output GIF frame rate (default 2)
  *   ARCH_GIF_WIDTH         — output width in px (default 1200)
+ *   ARCH_GIF_CROP_PADDING  — logical px around diagram content when auto-cropping (default 16)
  *   ARCH_GIF_INCLUDE_RESET — include idle frame before hop 1 (default false)
  *   ARCH_GIF_OUTPUT        — output path (default assets/overall-architecture.gif)
  */
@@ -32,12 +33,73 @@ const VIEWPORT = { width: 1600, height: 1100 };
 const DIAGRAM_SELECTOR = ".nr-v5-overall-mounted .fs-overall-canvas-wrap";
 
 const FIRST_INDEX = Number(process.env.ARCH_GIF_FIRST_INDEX ?? 0);
-const LAST_INDEX = Number(process.env.ARCH_GIF_LAST_INDEX ?? 6);
-const FRAME_DELAY_MS = Number(process.env.ARCH_GIF_FRAME_DELAY_MS ?? 700);
+const LAST_INDEX = Number(process.env.ARCH_GIF_LAST_INDEX ?? 22);
+const FRAME_DELAY_MS = Number(process.env.ARCH_GIF_FRAME_DELAY_MS ?? 900);
 const OUTPUT_FPS = Number(process.env.ARCH_GIF_FPS ?? 2);
 const OUTPUT_WIDTH = Number(process.env.ARCH_GIF_WIDTH ?? 1200);
+const CROP_PADDING = Number(process.env.ARCH_GIF_CROP_PADDING ?? 16);
 const INCLUDE_RESET =
   (process.env.ARCH_GIF_INCLUDE_RESET ?? "false").toLowerCase() === "true";
+
+async function resolveTightExportClip(page, cropPadding) {
+  return page.evaluate((pad) => {
+    const viz = window.__flowstory;
+    const engine = viz?._engine;
+    const canvas = viz?._canvas;
+    const wrap = canvas?.closest?.(".fs-overall-canvas-wrap");
+    if (!engine || !canvas || !wrap) {
+      throw new Error("FlowStory canvas not ready for export clip");
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of Object.values(viz._diagram?.nodes ?? {})) {
+      minX = Math.min(minX, node.x);
+      minY = Math.min(minY, node.y);
+      maxX = Math.max(maxX, node.x + (node.w ?? 0));
+      maxY = Math.max(maxY, node.y + (node.h ?? 0));
+      if (node.stackOffset) {
+        const stacks = node.stackCount ?? 1;
+        maxX = Math.max(maxX, node.x + (node.w ?? 0) + stacks * Math.abs(node.stackOffset.dx ?? 0));
+        maxY = Math.max(maxY, node.y + (node.h ?? 0) + stacks * Math.abs(node.stackOffset.dy ?? 0));
+      }
+    }
+    minX -= pad;
+    minY -= pad;
+    maxX += pad;
+    maxY += pad;
+
+    const wrapRect = wrap.getBoundingClientRect();
+    const scale = engine._sc ?? 1;
+    const offsetX = engine._ox ?? 0;
+    const offsetY = engine._oy ?? 0;
+    const canvasWidth = engine.W ?? canvas.width;
+    const canvasLeftInWrap = Math.max(0, (wrap.clientWidth - canvasWidth) / 2);
+
+    let left = wrapRect.left + canvasLeftInWrap + offsetX + minX * scale;
+    let top = wrapRect.top + offsetY + minY * scale;
+    let right = left + (maxX - minX) * scale;
+    let bottom = top + (maxY - minY) * scale;
+
+    const legend = wrap.querySelector("#fs-legend, .fs-legend--diagram-inset");
+    if (legend) {
+      const legendRect = legend.getBoundingClientRect();
+      left = Math.min(left, legendRect.left - 4);
+      top = Math.min(top, legendRect.top - 4);
+      right = Math.max(right, legendRect.right + 4);
+      bottom = Math.max(bottom, legendRect.bottom + 4);
+    }
+
+    return {
+      x: Math.max(0, Math.round(left)),
+      y: Math.max(0, Math.round(top)),
+      width: Math.max(1, Math.round(right - left)),
+      height: Math.max(1, Math.round(bottom - top)),
+    };
+  }, cropPadding);
+}
 
 const LAYERS_DOCK_MODE_KEY = "agentops-layers-dock-mode";
 const LAYERS_DOCK_VISIBLE_KEY = "agentops-layers-dock-visible";
@@ -211,13 +273,15 @@ async function exportGif() {
     const diagram = page.locator(DIAGRAM_SELECTOR);
     await diagram.waitFor({ state: "visible" });
     await page.evaluate(() => document.fonts?.ready);
+    const exportClip = await resolveTightExportClip(page, CROP_PADDING);
 
     let frameNumber = 1;
 
     async function captureFrame() {
       const framePath = path.join(framesDir, `frame-${String(frameNumber).padStart(4, "0")}.png`);
-      await diagram.screenshot({
+      await page.screenshot({
         path: framePath,
+        clip: exportClip,
         animations: "disabled",
         scale: "css",
       });

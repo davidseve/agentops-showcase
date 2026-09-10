@@ -216,7 +216,7 @@ agentops-showcase/
 │   ├── validate-demo-external-css.sh  # Lint docs/demo HTML/JS for external CSS only
 │   ├── validate-demo-ui.sh            # CSS lint + demo unit tests (no cluster)
 │   ├── export-readme-architecture.sh  # Playwright PNG for README (v5/live.html step 0)
-│   ├── export-readme-architecture-gif.sh  # Playwright frame capture + ffmpeg GIF (hops 0–6 default)
+│   ├── export-readme-architecture-gif.sh  # Playwright frame capture + ffmpeg GIF (hops 0–22 default)
 │   ├── demo-observability-proxy.py
 │   ├── demo-enable-guardrails.sh  # Live demo Change 2: NeMo inference path
 │   ├── demo-disable-guardrails.sh # Reset to direct MaaS
