@@ -14,23 +14,6 @@ This project demonstrates the **BYOA (Bring Your Own Agent)** approach from the 
 
 *Interactive map:* [v5/live.html](https://davidseve.github.io/agentops-showcase/demo/v5/live.html#step-0) step **Overall Demo** (`./scripts/demo-presenter-serve.sh`). Standalone reference: [`overall-demo-architecture.html`](docs/demo/overall-demo-architecture.html).
 
-**Regenerate after diagram edits** (manual only — not CI):
-
-| Asset | Command | Output |
-|-------|---------|--------|
-| Animated GIF (README) | `make export-architecture-gif` | `assets/overall-architecture.gif` |
-| Static PNG | `make export-architecture` | [assets/overall-architecture.png](assets/overall-architecture.png) |
-
-GIF export needs `ffmpeg`, Node, and Playwright Chromium (the script installs test deps and Chromium on first run):
-
-```bash
-make export-architecture-gif
-# equivalent:
-./scripts/export-readme-architecture-gif.sh
-```
-
-Defaults: full baseline hops **0–22** (through MLflow trace), **2 fps**, tight crop around the diagram. Tune with env vars, e.g. `ARCH_GIF_FPS=1` (slower) or `ARCH_GIF_LAST_INDEX=6` (request path only). See `tests/export-architecture-gif.mjs` for all options.
-
 ## Platform Stack
 
 ```mermaid
