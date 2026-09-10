@@ -12,7 +12,7 @@ This project demonstrates the **BYOA (Bring Your Own Agent)** approach from the 
 
 ![AgentOps platform architecture — full baseline flow](assets/overall-architecture.gif)
 
-*Interactive map:* [https://davidseve.github.io/agentops-showcase/demo/v5/live.html#step-0](docs/demo/v5/live.html) step **Overall Demo** (`./scripts/demo-presenter-serve.sh`). Standalone reference: [`overall-demo-architecture.html`](docs/demo/overall-demo-architecture.html).
+*Interactive map:* [v5/live.html](https://davidseve.github.io/agentops-showcase/demo/v5/live.html#step-0) step **Overall Demo** (`./scripts/demo-presenter-serve.sh`). Standalone reference: [`overall-demo-architecture.html`](docs/demo/overall-demo-architecture.html).
 
 **Regenerate after diagram edits** (manual only — not CI):
 
