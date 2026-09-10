@@ -2,7 +2,7 @@
  * Shared FlowStory bootstrap for per-scenario demo panels (A–D).
  */
 
-import { FlowStory } from "../shared/vendor/flowstory.min.js";
+import { FlowStory } from "../shared/vendor/flowstory.min.js?v=2";
 import { setLogosEnabled } from "../shared/logo-renderer.js";
 import { OVERALL_IN_DOC, syncCanvasWrapLegend } from "./overall-in-doc-resize.js";
 

@@ -12,7 +12,7 @@ import {
   disposeScenarioDiagramSession,
   initScenarioDiagram,
   stripScenarioDiagramBodyClasses,
-} from "../scenarios/shared-scenario.js?v=54";
+} from "../scenarios/shared-scenario.js?v=55";
 import { buildInDocEmbedHtml, wireInDocOverlayClose } from "./in-doc-embed-html.js?v=53";
 import { SCENARIO_CANVAS_CONFIG } from "./scenario-canvas-config.js";
 

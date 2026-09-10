@@ -180,11 +180,12 @@ make export-architecture
 
 Output: [`assets/overall-architecture.png`](../../assets/overall-architecture.png) (baseline flow with all hops revealed). Commit the PNG after regenerating — CI does not auto-export or validate it.
 
-Animated GIF (request path hops 0–6 by default; requires `ffmpeg`):
+Animated GIF (full baseline hops 0–22 by default; requires `ffmpeg`):
 
 ```bash
 make export-architecture-gif
-# full baseline: ARCH_GIF_LAST_INDEX=21 make export-architecture-gif
+# or: ./scripts/export-readme-architecture-gif.sh
+# shorter path only: ARCH_GIF_LAST_INDEX=6 make export-architecture-gif
 ```
 
 Output: [`assets/overall-architecture.gif`](../../assets/overall-architecture.gif). Same manual-only policy as the PNG.

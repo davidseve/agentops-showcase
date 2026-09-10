@@ -5,11 +5,11 @@
 
 import { LIVE_COMPANION_EXCLUDED_NAV_IDS, NAV_GROUPS, STEP_IDS } from "../v1/narrative-data.js";
 import { initNarrativeUI } from "../v1/narrative-ui.js?v=57";
-import { destroyOverallEmbed, mountOverallEmbed } from "./overall-embed.js?v=15";
+import { destroyOverallEmbed, mountOverallEmbed } from "./overall-embed.js?v=17";
 import {
   captureV4ScenarioCanvasHeight as captureV5ScenarioCanvasHeight,
   releaseV4ScenarioCanvasHeight as releaseV5ScenarioCanvasHeight,
-} from "../scenarios/shared-scenario.js?v=54";
+} from "../scenarios/shared-scenario.js?v=55";
 
 /** Step ID → overall diagram flow ID. All steps reuse the full architecture diagram. */
 const STEP_FLOW_MAP = {
