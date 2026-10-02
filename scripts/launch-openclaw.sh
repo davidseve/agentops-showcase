@@ -229,25 +229,29 @@ sed -e "s|__APPS_DOMAIN__|${APPS_DOMAIN}|g" \
 # to bind :18789), still serving whatever stale config/env it started with.
 # Verify the process list is empty afterwards — don't trust exit code alone.
 step "Cleaning stale gateway processes"
+# Match argv as pgrep -f sees it (no PID prefix). After start, the process often
+# rewrites to bare "openclaw" — the old " openclaw$" pattern never matched that,
+# so kill no-op'd and every relaunch left the stale gateway (wrong password) up.
+OPENCLAW_PGREP='openclaw gateway|^openclaw$|/openclaw|node.*openclaw'
 kill_stale_openclaw_gateway() {
   openshell sandbox exec -n "$SANDBOX_POD" --no-tty --timeout 15 -- bash -c '
-    for p in $(pgrep -f "openclaw gateway|/openclaw| openclaw$|node.*openclaw" 2>/dev/null); do
+    for p in $(pgrep -f "'"${OPENCLAW_PGREP}"'" 2>/dev/null); do
       kill -9 "$p" 2>/dev/null
     done
     sleep 2
     rm -f /sandbox/workspace/.openclaw/state/*.lock /tmp/openclaw*/*.lock 2>/dev/null
-    pgrep -af "openclaw gateway|/openclaw| openclaw$|node.*openclaw" 2>/dev/null
+    pgrep -af "'"${OPENCLAW_PGREP}"'" 2>/dev/null
     true
   ' 2>&1
   return 0
 }
 STALE_CHECK="$(kill_stale_openclaw_gateway)"
-if echo "$STALE_CHECK" | grep -qE "openclaw gateway|/openclaw| openclaw$|node.*openclaw"; then
+if echo "$STALE_CHECK" | grep -qE "openclaw"; then
   warn "Stale gateway process(es) survived first kill attempt — retrying:"
   echo "$STALE_CHECK" | while IFS= read -r line; do info "  $line"; done
   STALE_CHECK="$(kill_stale_openclaw_gateway)"
 fi
-if echo "$STALE_CHECK" | grep -qE "openclaw gateway|/openclaw| openclaw$|node.*openclaw"; then
+if echo "$STALE_CHECK" | grep -qE "openclaw"; then
   error "Could not kill stale OpenClaw gateway process(es) after 2 attempts — refusing to start a second gateway on top of a live one:"
   echo "$STALE_CHECK" | while IFS= read -r line; do error "  $line"; done
   error "Fix: openshell sandbox connect ${SANDBOX_POD}, then manually 'kill -9 <pid>' for each, then re-run this script."
@@ -424,7 +428,7 @@ openshell sandbox exec -n "$SANDBOX_POD" --no-tty --timeout 15 \
     nohup openclaw gateway run > /sandbox/workspace/openclaw.log 2>&1 &
     disown
     sleep 8
-    if pgrep -f 'openclaw gateway|/openclaw| openclaw\$|node.*openclaw' >/dev/null; then
+    if pgrep -f 'openclaw gateway|^openclaw$|/openclaw|node.*openclaw' >/dev/null; then
       echo OK
     else
       echo FAIL

@@ -18,4 +18,19 @@ info "Policy: $(basename "$POLICY_DEFAULT")"
 "${SCRIPT_DIR}/demo-disable-guardrails.sh"
 
 openshell policy set "${SANDBOX_NAME}" --policy "$POLICY_DEFAULT" --wait
+
+step "Cleaning sandbox workspace artifacts"
+KEEP_PATTERN='^\.(openclaw|combined-ca-bundle)|^AGENTS\.md$|^IDENTITY\.md$|^SOUL\.md$|^openclaw\.log$'
+STALE=$(openshell sandbox exec -n "${SANDBOX_NAME}" --no-tty -- \
+  bash -c "ls -A /sandbox/workspace/ 2>/dev/null" | grep -Ev "$KEEP_PATTERN" || true)
+if [[ -n "$STALE" ]]; then
+  while IFS= read -r f; do
+    openshell sandbox exec -n "${SANDBOX_NAME}" --no-tty -- rm -rf "/sandbox/workspace/${f}" 2>/dev/null || true
+    info "Removed /sandbox/workspace/${f}"
+  done <<< "$STALE"
+  pass "Sandbox workspace cleaned"
+else
+  info "No stale artifacts found"
+fi
+
 pass "Demo reset complete — direct MaaS + MLflow-only egress (start New session in Control UI before Scenario C)"

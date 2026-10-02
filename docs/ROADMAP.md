@@ -65,8 +65,6 @@
 - [x] Configure MLflow tracing integration
 - [x] Deploy and validate on RHOAI 3.x cluster
 - [ ] Implement attack scenarios for the security demo — scripts + narrative in [`demo-narrative-v1.md`](demo-narrative-v1.md); validate Prueba C egress on cluster
-- [ ] (Nice-to-have) EvalHub + GARC red teaming setup
-- [ ] (Nice-to-have) Cost tracking dashboard
 
 
 
@@ -77,11 +75,10 @@
 - [x] Write step-by-step demo script with timing marks (~9–10 min live) — [`demo-script.md`](demo-script.md) (English); narrative [`demo-narrative-v1.md`](demo-narrative-v1.md) (Spanish)
 - [x] Create health-check script (`tests/health-check.sh`)
 - [x] Create warm-up script — skill `demo-warmup`, script `scripts/demo-warmup.sh`
-- [ ] Record fallback video
-- [ ] Build presentation slides (5-8 min theory)
-- [ ] Rename github proyect.
-- [ ] Name conventions refactor.
-
+- [ ] DemoJam Record fallback video
+- [ ] DemoJam Build presentation slides (5-8 min theory)
+- [x] Rename github proyect.
+- [ ] Review proxy connectivity resiliency
 
 
 ## Deferred
@@ -103,8 +100,8 @@ Active v1 demo now aligns with that unlock direction for egress:
 - [x] Demo-initial policy with default deny — [`config/openshell/default.yaml`](../config/openshell/default.yaml)
 - [x] Live allowlist script — [`scripts/demo-allow-google-egress.sh`](../scripts/demo-allow-google-egress.sh) applies [`config/openshell/google-egress.yaml`](../config/openshell/google-egress.yaml)
 - [x] Narrative + timed script — [`demo-narrative-v1.md`](demo-narrative-v1.md), [`demo-script.md`](demo-script.md)
-- [ ] Keep `config/openshell/default.yaml` as CI / `validate-security` baseline (unchanged)
-- [ ] Optional: document per-endpoint `openshell policy update --add-endpoint` as an alternate Change 1 presentation
+- [x] Keep `config/openshell/default.yaml` as CI / `validate-security` baseline (unchanged)
+- [x] Optional: document per-endpoint `openshell policy update --add-endpoint` as an alternate Change 1 presentation
 
 
 
