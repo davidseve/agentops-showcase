@@ -93,17 +93,48 @@ _(Not a CNCF Project Opportunity submission.)_
 
 | Field | Value |
 |-------|-------|
-| Name | David Severiano |
+| Name | David Severiano Herbada |
 | Email | davidseve16@gmail.com |
-| Job title shown publicly | AppDev and DevOps Architect in Red Hat |
-| Bio (public, ≤500 chars) | AppDev and DevOps Architect in Red Hat, helping customers to adopt Open Source and facilitating innovation, modernization, and agility inside the company. |
-| Speaker Title field | AppDev and DevOps Architect |
+| Sessionize **Tagline** | Senior Architect, Red Hat — OpenShift AI & AgentOps |
+| Sessionize **Biography** (public, 472/500 chars) | see copy-paste block below |
+| Speaker Title field | Senior Architect |
 | Company | Red Hat |
 | Company Website | https://www.redhat.com |
 | End user organization? | No — Red Hat is a vendor, not an [end user company](https://landscape.cncf.io/?group=members&view-mode=card&classify=category&enduser=true) |
 | Country of residence | Spain |
 | Spoken previously (LF/CNCF event)? | No — first time |
 | Person of color / Gender identity / Other underrepresented group | Left blank (optional, confidential — not required for review) |
+
+### Sessionize profile — Tagline & Bio (copy-paste)
+
+> Screenshot of Sessionize **Tagline & Bio**. Changing the default profile **does not update already submitted sessions** — edit this *before* submitting KubeCon, then still check the session-specific speaker card.
+
+**Tagline** (company + title combined):
+
+```
+Senior Architect, Red Hat — OpenShift AI & AgentOps
+```
+
+**Biography** (English, third person, 472 characters — fits the ≤500-char speaker card):
+
+```
+David Severiano is a Senior Architect at Red Hat Consulting in Madrid. He helps customers operationalize AI and cloud-native platforms on Kubernetes and OpenShift AI: GitOps, GenAIOps, and AgentOps — sandboxing, zero-trust credentials, and observability for autonomous agents. He speaks at Red Hat Summit Connect, co-instructs Red Hat AI500/AI501, holds the Red Hat Certified Specialist in OpenShift AI, and publishes cloud-native patterns on GitHub and Red Hat Developer.
+```
+
+Drawn from LinkedIn (`linkedin.com/in/david-severiano`), Red Hat Developer articles, Summit Connect Madrid (Secure AgentOps + RAG), AI500/AI501 instructor, RHCOAI cert, and current AgentOps / OpenShift AI work. Keep **Show in public profile** checked.
+
+### Sessionize profile — Links tab
+
+Paste these on the **Links** tab (same Sessionize header as Tagline & Bio). Use them for Additional Resources too if the session form has a separate links list.
+
+| Label | URL |
+|-------|-----|
+| LinkedIn | https://www.linkedin.com/in/david-severiano/ |
+| GitHub (session repo) | https://github.com/davidseve/agentops-showcase |
+| GitHub (profile) | https://github.com/davidseve |
+| Red Hat Developer | https://developers.redhat.com/author/david-severiano |
+| Company | https://www.redhat.com |
+| Speaker video | **TODO** — YouTube unlisted 2–5 min intro; optional if it misses the 11 Oct deadline |
 
 ## Speaker 2 (co-speaker)
 
@@ -155,7 +186,9 @@ Possible use if there's a free-text "Comments to organizers" field beyond the 10
 | Is this a case study? | Yes — real-world build/experience report, not theoretical |
 | Presented before at an LF/CNCF event in the past year? | No |
 | CNCF-hosted (graduated/incubating/sandbox) or OSS projects referenced | Kubernetes (demoed today). Committed for the live demo by event date via Phase 5.1: Envoy, Istio, and **Kuadrant** (CNCF Sandbox — "Connectivity Link" is the downstream product name, don't use that name in the CNCF-projects list). If the Phase 5.1 work isn't actually done by submission-finalization time, update this row and the description to stop referencing them as part of the session. |
-| Additional Resources | Link to a prior talk recording if available, else a short self-intro video per CFP guidance. **TODO**: attach link before submitting. |
+| Additional Resources | Two links to add here (Sessionize usually exposes this as the **"Additional Resources" / "Links"** area of the session — a repeatable link list with a label + URL per entry, separate from the 1000-char description, not shown in the fields the user pasted so far; it may be lower on the same form or in the speaker's "Links" section of the profile): |
+| → Repository | `https://github.com/davidseve/agentops-showcase` (label it "Repository" or "GitHub" if the link entry has a type/label field) — lets reviewers see the real architecture (ADRs, Helm charts, demo scripts) behind the abstract. |
+| → Speaker video | **Not recorded yet.** Per the CFP page: "a video or audio recording of a previous talk ... a brief YouTube video of yourself speaking for a few minutes works too." Record a short (2–5 min) unlisted/public YouTube clip — either you narrating the architecture diagram, or a clip of a past talk if one exists — and paste that URL into the same Additional Resources area, labeled "Speaker intro" or "Talk recording". **TODO before submitting**: record it, upload, paste link here. |
 | Slides commitment | Accepted speakers must submit slides pre-event — note for scheduling prep work. |
 
 ## Comments / internal notes (do not submit as-is)
@@ -164,3 +197,5 @@ Possible use if there's a free-text "Comments to organizers" field beyond the 10
 - If a separate "Comments to organizers" field exists in the actual Sessionize form (not visible in the fields pasted by the user), port over the multi-platform alignment + demo scenario table from [`../reusable-blocks.md`](../reusable-blocks.md).
 - Before final submit: confirm Carlos Cornejo is under his own 3-submission cap for this CFP.
 - Photo: Sessionize speaker profile photo is reused from account — verify it's current.
+- **TODO — video**: record a 2–5 min speaker intro or architecture walkthrough, upload to YouTube (unlisted is fine, must be publicly viewable via the link), add the URL under Additional Resources. Deadline is 11 Oct — if there's no time to record before then, it's optional per the CFP page ("if you don't have one..."), so it's fine to submit without it rather than miss the deadline.
+- **TODO — repo link**: add `https://github.com/davidseve/agentops-showcase` to Additional Resources / speaker Links before submitting. Make sure the repo's `README.md` is in a presentable state for reviewers clicking through from the CFP (it already is, per the "AgentOps Showcase" README with the architecture GIF).
