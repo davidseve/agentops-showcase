@@ -81,6 +81,134 @@
 - [ ] Review proxy connectivity resiliency
 
 
+## Phase 5 — Platform Enhancements (Q3/Q4 2026 Roadmap)
+
+> Post-demo evolution. Incorporates new Red Hat platform capabilities identified
+> in the Q3 2026 planning meeting and product briefings for OpenShift and RHOAI.
+> These items are **not blockers** for the current demo — they represent the next
+> evolution of the platform stack.
+
+### Phase 5.1: MCP Gateway Integration (P1)
+
+> Action item: David Severiano
+
+**Priority**: 🔥 High — directly extends the demo security narrative.
+**Maturity**: Technology Preview (Red Hat Connectivity Link 1.4, MCP Gateway 0.7.0).
+
+Integrate [MCP Gateway](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.4/html/mcp_gateway/mcp-gateway-introduction)
+to federate and govern agent tool access through a single managed endpoint.
+
+Capabilities:
+- **Aggregation**: single gateway endpoint federates tools from multiple MCP servers
+  (`MCPServerRegistration` CR with prefix-based tool namespacing)
+- **Authentication**: OAuth2/JWT via Kuadrant `AuthPolicy` (Keycloak, any OIDC provider);
+  discovery at `/.well-known/oauth-protected-resource`
+- **Authorization**: per-tool access control with CEL or OPA rules on `AuthPolicy`
+  (tool-level RBAC via identity token claims)
+- **Rate limiting**: per-user/per-agent limits via `RateLimitPolicy` on Gateway/HTTPRoute
+
+Architecture: Envoy proxy + Gateway API + Istio + Connectivity Link policies.
+
+Tasks:
+- [ ] Research: evaluate MCP Gateway on OCP 4.20+ with Connectivity Link 1.4
+- [ ] Deploy MCP Gateway on demo cluster (Helm + OLM)
+- [ ] Register at least one MCP server behind the gateway
+- [ ] Configure `AuthPolicy` with Keycloak for agent authentication
+- [ ] Configure `RateLimitPolicy` for agent tool-call limits
+- [ ] Wire agent (OpenClaw in sandbox) to call tools via MCP Gateway endpoint
+- [ ] Demo scenario: show agent tool call governed by auth + rate limiting
+- [ ] Document integration in `docs/` and create ADR
+
+References:
+- [Blog: Control your AI agent traffic at scale](https://www.redhat.com/en/blog/control-your-ai-agent-traffic-scale-model-context-protocol-gateway-red-hat-openshift-now-technology-preview)
+- [Install guide](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.4/html/install_the_mcp_gateway/mcp-gateway-install)
+- [Auth](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.4/html/registering_mcp_servers_and_creating_policies/mcp-gateway-authentication)
+- [Authorization](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.4/html/registering_mcp_servers_and_creating_policies/mcp-gateway-authorization)
+
+### Phase 5.2: SPIFFE/SPIRE + OpenShell Agent Identity (P1)
+
+> Action item: David Severiano
+
+**Priority**: 🔥 High — extends zero-trust narrative with cryptographic agent identity.
+**Maturity**: GA (Zero Trust Workload Identity Manager on OCP 4.20, v1.1) +
+mergeado in OpenShell ([PR #1784](https://github.com/NVIDIA/OpenShell/pull/1784)).
+
+Replace static credentials with SPIFFE-based dynamic identity for agents in
+OpenShell sandboxes. The sandbox supervisor obtains JWT-SVIDs from SPIRE,
+exchanges them for short-lived endpoint-specific OAuth tokens, and injects
+bearer tokens into matching HTTP requests. The agent never sees the SVID or
+the SPIFFE socket.
+
+Current state → Target state:
+- `apiKey: "unused"` + inference router → JWT-SVID → token exchange → dynamic bearer
+- Manual mTLS between CLI gateway and cluster → SVID-based mTLS, SPIRE-managed trust domain
+- No verifiable agent identity → SPIFFE ID: `spiffe://<domain>/openshell/sandbox/<id>`
+
+OpenShell Helm config:
+```yaml
+server:
+  providerTokenGrants:
+    spiffe:
+      enabled: true
+      workloadApiSocketPath: "/spiffe-workload-api/spire-agent.sock"
+```
+
+Prerequisites on OCP:
+- Zero Trust Workload Identity Manager operator (GA, OCP 4.20+)
+- SPIRE server + agents (DaemonSet)
+- SPIFFE CSI driver
+- `ClusterSPIFFEID` CRDs for workload registration
+
+Tasks:
+- [ ] Deploy Zero Trust Workload Identity Manager on OCP 4.20+ cluster
+- [ ] Configure SPIRE server, agents, and CSI driver
+- [ ] Enable SPIFFE provider token grants in OpenShell Helm chart
+- [ ] Create provider profile with `token_grant` metadata for inference endpoint
+- [ ] Validate: sandbox agent gets endpoint-specific bearer token via SVID exchange
+- [ ] Demo scenario: show agent identity is cryptographically verifiable (not static key)
+- [ ] Run OpenShell's included demo: `examples/spiffe-token-grant-demo/`
+- [ ] Document SPIFFE integration in `docs/` and create ADR
+
+References:
+- [OpenShell SPIFFE docs](https://docs.nvidia.com/openshell/dev/kubernetes/access-control)
+- [OCP 4.20 Zero Trust Workload Identity Manager](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/security_and_compliance/zero-trust-workload-identity-manager)
+- [Blog: Zero Trust WIM v1.1 GA](https://www.redhat.com/en/blog/zero-trust-workload-identity-manager-11-generally-available-red-hat-openshift)
+- [RHOAI 3.5 blog: SPIFFE direction](https://www.redhat.com/en/blog/beyond-container-boundaries-kernel-level-agent-security-red-hat-openshift-ai-35)
+
+### Phase 5.3: OpenShell A2A Transport + OpenClaw A2A Channel (P2)
+
+> Action item: David Severiano / Carlos Cornejo
+
+**Priority**: 🟡 Medium — enables governed multi-agent narrative.
+**Maturity**: OpenShell proxy supports A2A transport; OpenClaw A2A channel is GA
+([docs](https://docs.openclaw.ai/channels/a2a)).
+
+Enable agent-to-agent communication using the A2A protocol. OpenShell's proxy
+handles A2A JSON-RPC transport while AgentCard discovery happens at the
+catalog/gateway level. OpenClaw publishes an AgentCard automatically and can
+delegate tasks to peer agents.
+
+OpenClaw A2A capabilities:
+- Publishes AgentCard at `/.well-known/agent-card.json` (auto-generated)
+- Inbound: authenticated JSON-RPC tasks via A2A 1.0 binding
+- Outbound: configurable peers with `channels.a2a.peers`
+- Configurable: `exposeAgents`, `rateLimitPerMinute`, `advertisedUrl`
+- Current limitations: no streaming, push notifications, or task cancellation
+
+Tasks:
+- [ ] Enable A2A channel in OpenClaw configuration
+- [ ] Configure AgentCard exposure (`exposeAgents`) for the demo agent
+- [ ] Validate: A2A AgentCard published and reachable from outside the sandbox
+- [ ] Evaluate: OpenShell proxy A2A transport + SPIFFE identity injection
+- [ ] PoC: second agent discovers and delegates to the demo agent via A2A
+- [ ] Document A2A integration and update architecture diagram
+
+References:
+- [Red Hat blog: Building governed multi-agent networks](https://www.redhat.com/en/blog/why-single-ai-agents-fail-scale-building-governed-multi-agent-networks)
+- [OpenClaw A2A channel docs](https://docs.openclaw.ai/channels/a2a)
+- [A2A protocol: Agent discovery](https://github.com/google/A2A/blob/main/docs/topics/agent-discovery.md)
+
+
 ## Deferred
 
 
