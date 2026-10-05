@@ -19,7 +19,8 @@ docs/cfp/
 ├── template.md               # Blank CfP form (Red Hat TLDR-style fields)
 ├── reusable-blocks.md        # Copy-paste snippets
 └── submissions/
-    └── enterprise-agentops-rhoai.md   # Base proposal (saved 2026-03)
+    ├── enterprise-agentops-rhoai.md   # Base proposal (saved 2026-03, Red Hat TLDR)
+    └── kubecon-eu-2027-agentic-ai.md  # KubeCon EU 2027 Sessionize submission (saved 2026-10, Agentic AI track)
 ```
 
 ## Related source material
