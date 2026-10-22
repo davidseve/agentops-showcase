@@ -55,6 +55,9 @@ DEMO_ACTIONS: dict[str, dict[str, Any]] = {
 }
 
 _demo_run_lock = threading.Lock()
+_health_enrich_lock = threading.Lock()
+_health_enrich_cache: dict[str, Any] = {"at": 0.0, "data": {}}
+HEALTH_ENRICH_TTL_S = 30.0
 
 COMPONENTS: list[dict[str, Any]] = [
     {
@@ -688,15 +691,8 @@ def run_demo_action(action_id: str) -> tuple[int, dict[str, Any]]:
     }
 
 
-def build_health() -> dict[str, Any]:
-    oc_ok = command_exists("oc")
-    openshell_ok = command_exists("openshell")
-    oc_user = ""
-    if oc_ok:
-        code, out, _ = run_bash("oc whoami 2>/dev/null || true")
-        if code == 0:
-            oc_user = out.strip()
-
+def _build_health_enrichment(oc_ok: bool) -> dict[str, Any]:
+    """Slow fields (extra oc calls). Cached so /api/health stays under the UI timeout."""
     sandbox_reachable = False
     if oc_ok:
         code, _, _ = run_bash(
@@ -707,16 +703,58 @@ def build_health() -> dict[str, Any]:
     apps_domain = detect_apps_domain()
     mlflow_ctx = resolve_mlflow_context()
     return {
-        "ok": oc_ok and openshell_ok and bool(oc_user),
-        "fetchedAt": utc_now(),
-        "oc": oc_ok,
-        "openshell": openshell_ok,
-        "ocUser": oc_user or None,
         "sandboxReachable": sandbox_reachable,
         "appsDomain": apps_domain,
         "mlflowExperimentId": mlflow_ctx.get("experiment_id") or None,
         "mlflowBaseUrl": mlflow_ctx.get("mlflow_base_url") or None,
     }
+
+
+def _cached_health_enrichment(oc_ok: bool) -> dict[str, Any]:
+    now = time.monotonic()
+    with _health_enrich_lock:
+        age = now - float(_health_enrich_cache["at"])
+        cached = _health_enrich_cache["data"]
+        if cached and age < HEALTH_ENRICH_TTL_S:
+            return dict(cached)
+
+    enrich = _build_health_enrichment(oc_ok)
+    with _health_enrich_lock:
+        _health_enrich_cache["at"] = time.monotonic()
+        _health_enrich_cache["data"] = enrich
+    return dict(enrich)
+
+
+def build_health(*, enrich: bool = True) -> dict[str, Any]:
+    """
+    Fast liveness for the UI: oc/openshell on PATH + oc whoami.
+
+    Enrichment (sandbox / appsDomain / MLflow) is optional and TTL-cached so
+    concurrent log polling cannot push /api/health past the browser's 8–15s
+    AbortSignal (false "Proxy offline").
+    """
+    oc_ok = command_exists("oc")
+    openshell_ok = command_exists("openshell")
+    oc_user = ""
+    if oc_ok:
+        code, out, _ = run_bash("oc whoami 2>/dev/null || true")
+        if code == 0:
+            oc_user = out.strip()
+
+    payload: dict[str, Any] = {
+        "ok": oc_ok and openshell_ok and bool(oc_user),
+        "fetchedAt": utc_now(),
+        "oc": oc_ok,
+        "openshell": openshell_ok,
+        "ocUser": oc_user or None,
+        "sandboxReachable": False,
+        "appsDomain": None,
+        "mlflowExperimentId": None,
+        "mlflowBaseUrl": None,
+    }
+    if enrich:
+        payload.update(_cached_health_enrichment(oc_ok))
+    return payload
 
 
 class ObservabilityHandler(BaseHTTPRequestHandler):
