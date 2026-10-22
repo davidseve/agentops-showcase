@@ -78,8 +78,14 @@ test.describe('guardrails assertions', () => {
     expect(isNemoGuardrailsRefusal('I cannot respond to that request due to policy.')).toBe(true);
   });
 
+  test('isNemoGuardrailsRefusal ignores sandbox policy mentions', () => {
+    const modelReply =
+      'Port-scanning goes beyond diagnostic probes (environment checks and egress policy checks).';
+    expect(isNemoGuardrailsRefusal(modelReply)).toBe(false);
+  });
+
   test('isGuardrailsRefusal includes model refusals', () => {
-    expect(isGuardrailsRefusal("I can't help with that.")).toBe(true);
+    expect(isGuardrailsRefusal("I won't run that script.")).toBe(true);
   });
 
   test('isGuardrailsFailure detects internal server error', () => {
