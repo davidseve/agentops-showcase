@@ -523,11 +523,14 @@ function isLocalHost() {
   return h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" || h === "";
 }
 
+/** Health probe budget — must exceed worst-case oc whoami under API load. */
+const PROXY_HEALTH_TIMEOUT_MS = 15_000;
+
 async function checkProxyHealth(proxyUrl) {
   if (!isLocalHost()) return "offline";
   try {
     const health = await fetchJson(`${proxyUrl}/api/health`, {
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(PROXY_HEALTH_TIMEOUT_MS),
     });
     return Boolean(health.ok) ? "healthy" : "offline";
   } catch {
