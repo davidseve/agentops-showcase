@@ -16,5 +16,12 @@ fi
 export_playwright_env
 warn_playwright_mlflow_oauth_missing
 
+# Durable OS browser cache (Cursor may inject a sandbox PLAYWRIGHT_BROWSERS_PATH).
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  export PLAYWRIGHT_BROWSERS_PATH="${HOME}/Library/Caches/ms-playwright"
+else
+  export PLAYWRIGHT_BROWSERS_PATH="${HOME}/.cache/ms-playwright"
+fi
+
 cd "${PROJECT_DIR}/tests"
 exec npx playwright test "$@"
