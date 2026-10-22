@@ -195,36 +195,52 @@ export_playwright_env() {
 }
 
 # Pick a pod that can reach mlflow.<rhoai-ns>.svc from inside the cluster.
+# OpenShell gateway (ghcr.io/nvidia/openshell/gateway) is distroless — no shell/curl.
+# Do not exec into it (observed 2026-10-08: bash/sh/ls all missing).
 _mlflow_exec_target() {
   if oc -n "$NAMESPACE" get pod "$SANDBOX_NAME" &>/dev/null 2>&1; then
     _MLFLOW_EXEC_POD="$SANDBOX_NAME"
     _MLFLOW_EXEC_CONTAINER="agent"
     return 0
   fi
-  local gw_pod
-  gw_pod="$(oc -n "$NAMESPACE" get pods -l app.kubernetes.io/name=openshell \
-    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-  if [[ -n "$gw_pod" ]]; then
-    _MLFLOW_EXEC_POD="$gw_pod"
-    _MLFLOW_EXEC_CONTAINER=""
-    return 0
-  fi
   return 1
 }
 
+# Run curl inside the cluster. Prefer the OpenClaw sandbox agent; before the
+# sandbox exists, use an ephemeral curlimages/curl pod (same image as the Helm
+# openclaw-mlflow-experiment job). curl_cmd already embeds the Bearer token.
+# Avoid `oc run --rm -i` — its "pod deleted" line pollutes stdout and breaks JSON.
 _mlflow_cluster_curl() {
   local curl_cmd="$1"
-  if ! _mlflow_exec_target; then
-    warn "No sandbox or OpenShell pod in ${NAMESPACE} for MLflow API calls"
-    return 1
-  fi
-  if [[ -n "$_MLFLOW_EXEC_CONTAINER" ]]; then
+  local job_image="${MLFLOW_CURL_IMAGE:-docker.io/curlimages/curl:8.10.1}"
+  local pod_name
+  local i
+
+  if _mlflow_exec_target; then
     oc -n "$NAMESPACE" exec "$_MLFLOW_EXEC_POD" -c "$_MLFLOW_EXEC_CONTAINER" -- \
-      bash -c "$curl_cmd" 2>/dev/null || true
-  else
-    oc -n "$NAMESPACE" exec "$_MLFLOW_EXEC_POD" -- \
-      bash -c "$curl_cmd" 2>/dev/null || true
+      sh -c "$curl_cmd" 2>/dev/null || true
+    return 0
   fi
+
+  pod_name="mlflow-api-$(date +%s)-$RANDOM"
+  oc -n "$NAMESPACE" delete pod "$pod_name" --ignore-not-found --wait=false &>/dev/null || true
+  if ! oc -n "$NAMESPACE" run "$pod_name" --restart=Never \
+    --image="$job_image" \
+    --command -- /bin/sh -c "$curl_cmd" &>/dev/null; then
+    return 0
+  fi
+  i=0
+  while [[ $i -lt 60 ]]; do
+    local phase
+    phase="$(oc -n "$NAMESPACE" get pod "$pod_name" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+    case "$phase" in
+      Succeeded|Failed) break ;;
+    esac
+    i=$((i + 1))
+    sleep 1
+  done
+  oc -n "$NAMESPACE" logs "$pod_name" 2>/dev/null || true
+  oc -n "$NAMESPACE" delete pod "$pod_name" --ignore-not-found --wait=false &>/dev/null || true
 }
 
 read_mlflow_sa_token() {
@@ -239,6 +255,20 @@ read_mlflow_sa_token() {
     -o jsonpath='{.data.token}' | base64 -d)"
   export MLFLOW_TOKEN
   return 0
+}
+
+_mlflow_parse_experiment_id() {
+  python3 -c "import sys,json,re
+raw=sys.stdin.read()
+# First JSON object in the stream (ignore trailing oc noise if any)
+m=re.search(r'\\{.*\\}', raw, re.S)
+if not m:
+ print(''); raise SystemExit
+try:
+ d=json.loads(m.group(0))
+ print(d.get('experiment',{}).get('experiment_id','') or d.get('experiment_id','') or '')
+except Exception:
+ print('')" 2>/dev/null || true
 }
 
 # Get-or-create openclaw-tracing in the target workspace (ids are per-workspace).
@@ -262,7 +292,7 @@ ensure_mlflow_experiment() {
     "curl -sk '${mlflow_url}/api/2.0/mlflow/experiments/get-by-name?experiment_name=${experiment_name}' \
       -H 'Authorization: Bearer ${token}' \
       -H 'X-MLFLOW-WORKSPACE: ${workspace}'")"
-  exp_id="$(echo "$exp_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('experiment',{}).get('experiment_id',''))" 2>/dev/null || true)"
+  exp_id="$(echo "$exp_json" | _mlflow_parse_experiment_id)"
 
   if [[ -z "$exp_id" ]]; then
     info "Creating MLflow experiment '${experiment_name}' in workspace ${workspace}"
@@ -273,7 +303,15 @@ ensure_mlflow_experiment() {
         -H 'Content-Type: application/json' \
         -d '{\"name\": \"${experiment_name}\"}' \
         '${mlflow_url}/api/2.0/mlflow/experiments/create'")"
-    exp_id="$(echo "$exp_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('experiment',{}).get('experiment_id',''))" 2>/dev/null || true)"
+    exp_id="$(echo "$exp_json" | _mlflow_parse_experiment_id)"
+    # Race / prior Helm job: create returns RESOURCE_ALREADY_EXISTS — re-get by name.
+    if [[ -z "$exp_id" && "$exp_json" == *RESOURCE_ALREADY_EXISTS* ]]; then
+      exp_json="$(_mlflow_cluster_curl \
+        "curl -sk '${mlflow_url}/api/2.0/mlflow/experiments/get-by-name?experiment_name=${experiment_name}' \
+          -H 'Authorization: Bearer ${token}' \
+          -H 'X-MLFLOW-WORKSPACE: ${workspace}'")"
+      exp_id="$(echo "$exp_json" | _mlflow_parse_experiment_id)"
+    fi
   fi
 
   if [[ -z "$exp_id" ]]; then
@@ -311,14 +349,27 @@ warn_playwright_mlflow_oauth_missing() {
 
 ensure_playwright_deps() {
   local tests_dir="${PROJECT_DIR}/tests"
-  if [[ ! -d "$tests_dir/node_modules" ]]; then
+  # Prefer the durable OS browser cache. Cursor agents often inject
+  # PLAYWRIGHT_BROWSERS_PATH pointing at a sandbox tmp dir that disappears
+  # between sessions — that made demo verify fail with "Executable doesn't
+  # exist". Override to the real cache (macOS / Linux).
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    export PLAYWRIGHT_BROWSERS_PATH="${HOME}/Library/Caches/ms-playwright"
+  else
+    export PLAYWRIGHT_BROWSERS_PATH="${HOME}/.cache/ms-playwright"
+  fi
+
+  if [[ ! -d "$tests_dir/node_modules/@playwright/test" ]]; then
     step "Installing Playwright test dependencies"
     (cd "$tests_dir" && npm install)
   fi
-  if [[ ! -d "$HOME/.cache/ms-playwright" ]] && [[ ! -d "${tests_dir}/node_modules/playwright-core/.local-browsers" ]]; then
-    step "Installing Playwright chromium"
-    (cd "$tests_dir" && npx playwright install chromium)
+
+  if find "${PLAYWRIGHT_BROWSERS_PATH}" -maxdepth 1 -type d \
+       \( -name 'chromium-*' -o -name 'chromium_headless_shell-*' \) 2>/dev/null | grep -q .; then
+    info "Playwright dependencies present (${PLAYWRIGHT_BROWSERS_PATH})"
   else
-    info "Playwright dependencies present"
+    step "Installing Playwright chromium → ${PLAYWRIGHT_BROWSERS_PATH}"
+    mkdir -p "${PLAYWRIGHT_BROWSERS_PATH}"
+    (cd "$tests_dir" && npx playwright install chromium)
   fi
 }
