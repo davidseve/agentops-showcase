@@ -1,6 +1,7 @@
 # Demo script (live, ~9–10 min)
 
 > English timed companion to the active narrative: [`demo-narrative-v1.md`](demo-narrative-v1.md).
+> **Five-minute one-take variant:** [`demo-narrative-5min.md`](demo-narrative-5min.md) (ES) / [`demo-narrative-5min.en.md`](demo-narrative-5min.en.md) (EN) — see [§ Five-minute one-take](#five-minute-one-take) below.
 > Extended EvalHub/Garak variant: [`demo-narrative-v2.md`](demo-narrative-v2.md) (not presented live).
 >
 > UI: [`docs/demo/v5/live.html`](demo/v5/live.html) (live companion — step 0 embeds the architecture map). Launcher: [`docs/demo/index.html`](demo/index.html).
@@ -192,6 +193,30 @@ Open Gen AI Studio / MLflow for the **same chat session**.
 | **Total** | **~9–10** |
 
 If time is tight: one MLflow visit only. **Do not** cut A–D.
+
+For a hard **5:00** slot (video / short talk), use the one-take rundown below — same A–D, tighter talk track.
+
+---
+
+## Five-minute one-take
+
+> Spanish beat-by-beat: [`demo-narrative-5min.md`](demo-narrative-5min.md). English talk track: [`demo-narrative-5min.en.md`](demo-narrative-5min.en.md).
+> Same backstage state, prompts, and Change scripts as the 9–10 min script. **No edit jumps** — hit the clock by rehearsing.
+
+| Clock | Block | Do | Say (one line) |
+|-------|-------|----|----------------|
+| 0:00–0:45 | Hook + panels | Split: `v5/live.html` + Control UI | Client security challenge; BYOA without guardrails is risky; RHOAI security showcase; left = architecture steps, right = OpenClaw |
+| 0:45–1:15 | **A** | Copy prompt → Play (key audit) | Agent talks to `inference.local`; key injected at gateway, not in sandbox |
+| 1:15–1:40 | **B** | Copy prompt → Play (`cat /etc/shadow`) | Landlock / OpenShell already blocked system files — **skip** `ls` |
+| 1:40–2:45 | **C** + Change 1 | Curl blocked → `./scripts/demo-allow-google-egress.sh` (explain permissive config) → same prompt → Play → 200 | Gateway controls connectivity; one policy lever; agent unchanged |
+| 2:45–4:05 | **D** + Change 2 | Recon prompt → Play → explain NeMo → `./scripts/demo-enable-guardrails.sh` → **New session** → same prompt → Play → refuse | Full model access first; Guardrails cut before the model; still `inference.local` |
+| 4:05–4:30 | MLflow | Curl deny vs allow (same trace type, different Response) | Full trail: actions, commands, LLM calls, prompts |
+| 4:30–4:45 | Overall Demo | Step **Overall Demo** → Play + short summary | Recap the security path just shown |
+| 4:45–5:00 | Roadmap + close | Point to next capabilities | EvalHub/Garak, MCP Gateway, cost/showback; whole stack is GitOps — easy on RHPDS; *Your Agent. Our Platform. Production-Ready.* |
+
+**Hard gates:** if the clock hits **4:10** without D-after, jump to New session + refuse and compress MLflow; still try Overall + the GitOps/RHPDS line. If D-before generation drags, start Change 2 once useful script text is visible — do not pad with theory.
+
+**Prompts:** identical to §§ 1–3 above (Copy prompt from the companion).
 
 ---
 

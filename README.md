@@ -110,9 +110,11 @@ make deploy-all && make validate
 
 - [CfP kit](docs/cfp/README.md) — reusable talk proposals and TLDR submission base
 - [NeMo Guardrails Installation](docs/nemo-guardrails-installation.md)
-- [Demo script (live, ~9–10 min)](docs/demo-script.md) — Cursor skills in [AGENTS.md](AGENTS.md) § Demo v1
+- [Demo script (live, ~9–10 min; includes 5-min one-take)](docs/demo-script.md) — Cursor skills in [AGENTS.md](AGENTS.md) § Demo v1
 - [Demo scenario logs runbook](docs/demo/demo-scenario-logs.md) — per-test log evidence and [Sandbox panel highlight rules](docs/demo/demo-scenario-logs.md#sandbox-panel-highlight-rules)
-- [Demo narrative v1 (Spanish)](docs/demo-narrative-v1.md)
+- [Demo narrative v1 (Spanish, ~9–10 min)](docs/demo-narrative-v1.md)
+- [Demo narrative 5 min (Spanish, one-take)](docs/demo-narrative-5min.md)
+- [Demo narrative 5 min (English, one-take)](docs/demo-narrative-5min.en.md)
 - [Demo presenter UI](docs/demo/README.md) — `v5/live.html` live companion + observability panel
 - [docs/ROADMAP.md](docs/ROADMAP.md) - Development roadmap and task tracking
 - [docs/cluster-bootstrap.md](docs/cluster-bootstrap.md) - RHOAI platform deploy, validate, and teardown on OpenShift

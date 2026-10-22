@@ -2,6 +2,7 @@
 
 > Idioma: **español** (para alinear el relato con el compañero de demo).
 > Script cronometrado en inglés: [`docs/demo-script.md`](demo-script.md).
+> Variante **5 minutos** (one-take, mismas pruebas A–D): [`demo-narrative-5min.md`](demo-narrative-5min.md) (ES) / [`demo-narrative-5min.en.md`](demo-narrative-5min.en.md) (EN).
 >
 > Duración objetivo: **~9–10 minutos** en vivo.
 
