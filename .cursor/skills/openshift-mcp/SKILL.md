@@ -87,8 +87,14 @@ Read the local YAML file, then pass its content as the `resource` string to `res
 Only use `oc`/`kubectl` when:
 - MCP server status is `error` or `needsAuth` and auth fails
 - The operation requires a subcommand not exposed by MCP (e.g., `oc debug`, port-forward)
+- A project script must run locally (`demo-presenter-serve.sh`, `launch-openclaw.sh`, `make -C deploy …`)
 
 When falling back, mention why MCP was not used.
+
+**Required:** any Shell invocation of `oc` / `openshell` / deploy / presenter scripts
+MUST use `required_permissions: ["all"]`. The default Cursor sandbox makes
+`oc whoami` fail with `Forbidden` despite a valid interactive kubeconfig — see
+`.cursor/rules/oc-shell-unsandboxed.mdc`.
 
 ## Additional resources
 
