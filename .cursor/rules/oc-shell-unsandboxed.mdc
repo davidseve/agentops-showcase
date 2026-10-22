@@ -1,0 +1,47 @@
+---
+description: >-
+  Run oc/openshell/deploy/presenter shell commands outside the Cursor sandbox
+  (required_permissions: ["all"]). Prefer user-kubernetes MCP for cluster reads.
+alwaysApply: true
+---
+
+# OpenShift Shell: Unsandboxed
+
+Observed failure (2026-09-30): Cursor **Agent Shell** defaults to a sandbox where
+`oc whoami` fails with `Forbidden` / “Not logged into OpenShift” even though
+`~/.kube/config` has a valid interactive login. With
+`required_permissions: ["all"]`, the same command succeeds.
+
+## Prefer MCP for cluster API
+
+For pods, logs, events, Helm, Routes, operators → use **`user-kubernetes`** MCP
+(`openshift-mcp` skill). Do **not** use sandboxed `oc` for those.
+
+## Shell must request `all` when
+
+Any of the following run in the **Shell** tool (not MCP):
+
+| Pattern | Examples |
+|---|---|
+| OpenShift CLI | `oc …`, `kubectl …` |
+| OpenShell CLI | `openshell …` |
+| Presenter / observability | `./scripts/demo-presenter-serve.sh`, `demo-observability-proxy.py` |
+| Deploy / verify / demo scripts | `make -C deploy …`, `./scripts/launch-openclaw.sh`, `./scripts/verify.sh`, `./scripts/demo-*.sh`, `./scripts/cluster-lifecycle.sh` |
+
+Invoke Shell with:
+
+```text
+required_permissions: ["all"]
+```
+
+## If `oc whoami` fails
+
+1. Retry the **same** command with `required_permissions: ["all"]` (do not tell the user to re-login yet).
+2. Only if unsandboxed `oc whoami` still fails → ask the user to run `oc login` in their interactive terminal.
+3. Never commit kubeconfig, tokens, or paste login tokens into the repo or chat.
+
+## Do not
+
+- Assume “Not logged in” from a sandboxed Shell means the workstation session is dead
+- Start `demo-presenter-serve.sh` without `["all"]` (preflight will false-fail)
+- Store cluster credentials in project files to “fix” agent auth

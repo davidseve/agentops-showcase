@@ -88,7 +88,8 @@ run_preflight() {
   require_cmd openshell || return 1
 
   if ! oc whoami &>/dev/null; then
-    error "Not logged into OpenShift — run: oc login <cluster-url>"
+    error "oc whoami failed — run: oc login <cluster-url> in an interactive terminal"
+    error "If already logged in and this is a Cursor agent shell: retry with required_permissions:[\"all\"] (sandbox blocks oc API)"
     return 1
   fi
   info "oc: $(oc whoami) @ $(oc whoami --show-server)"

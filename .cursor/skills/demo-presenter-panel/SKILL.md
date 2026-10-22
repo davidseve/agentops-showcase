@@ -12,6 +12,10 @@ Interactive FlowStory panels — not slides. See [`docs/demo/README.md`](../../d
 
 ## Start servers
 
+**Agent Shell:** always run these with `required_permissions: ["all"]`. The Cursor
+sandbox breaks `oc whoami` (false “Not logged in”) even when `~/.kube/config` is
+valid — see `.cursor/rules/oc-shell-unsandboxed.mdc`.
+
 From repo root (recommended — preflight + static UI + cluster observability proxy):
 
 ```bash
