@@ -61,3 +61,6 @@ tests/playwright-report/
 .logs/
 .agent-status/
 .verify-status.json
+
+# Local scratch (e.g. downloaded demo recordings for analysis)
+.tmp/
