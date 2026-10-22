@@ -49,8 +49,10 @@ Proxy endpoints: `GET /api/demo/actions`, `POST /api/demo/run` with body `{"acti
 
 **Presenter runbooks (repo / IDE only)** — do not open raw markdown URLs during the live demo.
 
-- Narrative (Spanish): [demo-narrative-v1.md](../demo-narrative-v1.md)
-- Timed script (English): [demo-script.md](../demo-script.md)
+- Narrative (Spanish, ~9–10 min): [demo-narrative-v1.md](../demo-narrative-v1.md)
+- Narrative (Spanish, 5 min one-take): [demo-narrative-5min.md](../demo-narrative-5min.md)
+- Narrative (English, 5 min one-take): [demo-narrative-5min.en.md](../demo-narrative-5min.en.md)
+- Timed script (English; includes 5-min table): [demo-script.md](../demo-script.md)
 
 ## Offline rehearsal
 

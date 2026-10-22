@@ -97,7 +97,7 @@ This maps demo features to specific Red Hat products/components:
 
 ## Demo Narrative
 
-Active live script (~9–10 min): [`docs/demo-narrative-v1.md`](docs/demo-narrative-v1.md) (Spanish) + [`docs/demo-script.md`](docs/demo-script.md) (English).
+Active live script (~9–10 min): [`docs/demo-narrative-v1.md`](docs/demo-narrative-v1.md) (Spanish) + [`docs/demo-script.md`](docs/demo-script.md) (English). Short slot / video (~5 min one-take, same A–D): [`docs/demo-narrative-5min.md`](docs/demo-narrative-5min.md) (Spanish) / [`docs/demo-narrative-5min.en.md`](docs/demo-narrative-5min.en.md) (English).
 
 1. **Context** (1–2 min): Architecture map via v5 step **Overall Demo** ([`docs/demo/v5/live.html`](docs/demo/v5/live.html)) — skill: `demo-presenter-panel`
 2. **Tests A & B** (2–3 min): API key not in sandbox; `/etc/shadow` blocked — skill: `demo-present`
@@ -183,8 +183,10 @@ agentops-showcase/
 │   ├── stack-decisions.md         # ADR executive summary (by layer)
 │   ├── adr/                       # Architecture Decision Records
 │   ├── demo/                      # Presenter UI (v5 live companion; v1–v4 deprecated)
-│   ├── demo-script.md             # Live demo script (English)
-│   ├── demo-narrative-v1.md       # Active live demo narrative (Spanish)
+│   ├── demo-script.md             # Live demo script (English; includes 5-min one-take)
+│   ├── demo-narrative-v1.md       # Active live demo narrative (Spanish, ~9–10 min)
+│   ├── demo-narrative-5min.md     # Five-minute one-take narrative (Spanish, same A–D)
+│   ├── demo-narrative-5min.en.md  # Five-minute one-take narrative (English)
 │   ├── demo-narrative-v2.md       # EvalHub/Garak extension (nice-to-have)
 │   └── github-actions.md          # CI workflows
 ├── deploy/

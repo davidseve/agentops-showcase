@@ -73,6 +73,7 @@
 - [x] Scaffold Helm charts for one-command deployment — RHOAI + OpenShell: `[deploy/helm/openshell/](../deploy/helm/openshell/)` + `make -C deploy deploy-openshell`
 - [x] Refactor OpenShell wrapper chart (`0.3.0`): absorb namespace + SCC RoleBinding into Helm; Agent Sandbox via OLM only (OSC 1.13); retire kustomize + SCC script + raw `v0.5.1` manifest — see [ADR-0003](adr/0003-openshell-deployment-on-openshift.md)
 - [x] Write step-by-step demo script with timing marks (~9–10 min live) — [`demo-script.md`](demo-script.md) (English); narrative [`demo-narrative-v1.md`](demo-narrative-v1.md) (Spanish)
+- [x] Five-minute one-take narrative (same A–D) — [`demo-narrative-5min.md`](demo-narrative-5min.md) (ES) / [`demo-narrative-5min.en.md`](demo-narrative-5min.en.md) (EN); timing table in [`demo-script.md`](demo-script.md) § Five-minute one-take
 - [x] Create health-check script (`tests/health-check.sh`)
 - [x] Create warm-up script — skill `demo-warmup`, script `scripts/demo-warmup.sh`
 - [ ] DemoJam Record fallback video
@@ -227,7 +228,7 @@ Active v1 demo now aligns with that unlock direction for egress:
 
 - [x] Demo-initial policy with default deny — [`config/openshell/default.yaml`](../config/openshell/default.yaml)
 - [x] Live allowlist script — [`scripts/demo-allow-google-egress.sh`](../scripts/demo-allow-google-egress.sh) applies [`config/openshell/google-egress.yaml`](../config/openshell/google-egress.yaml)
-- [x] Narrative + timed script — [`demo-narrative-v1.md`](demo-narrative-v1.md), [`demo-script.md`](demo-script.md)
+- [x] Narrative + timed script — [`demo-narrative-v1.md`](demo-narrative-v1.md), [`demo-script.md`](demo-script.md); 5-min variant [`demo-narrative-5min.md`](demo-narrative-5min.md) / [`demo-narrative-5min.en.md`](demo-narrative-5min.en.md)
 - [x] Keep `config/openshell/default.yaml` as CI / `validate-security` baseline (unchanged)
 - [x] Optional: document per-endpoint `openshell policy update --add-endpoint` as an alternate Change 1 presentation
 
