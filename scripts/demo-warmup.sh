@@ -48,7 +48,7 @@ PLATFORM_OK=false
 REMEDIABLE_FAIL=false
 
 control_ui_url() {
-  echo "https://${SANDBOX_NAME}--openclaw-ui.${APPS_DOMAIN}/"
+  echo "https://${OPENSHELL_WORKSPACE:-default}--${SANDBOX_NAME}--openclaw-ui.${APPS_DOMAIN}/"
 }
 
 mlflow_url() {
@@ -134,10 +134,11 @@ check_openclaw() {
   step "Layer 5: OpenClaw gateway"
   local ok=true
   openshell gateway select "${GATEWAY_NAME}" >/dev/null 2>&1 || true
+  # validate-openclaw includes session-store RPC (not only /health).
   if make -C "$DEPLOY_DIR" validate-openclaw >/dev/null 2>&1; then
-    pass "OpenClaw gateway healthy"
+    pass "OpenClaw gateway healthy + session store OK"
   else
-    fail "OpenClaw gateway down or unreachable"
+    fail "OpenClaw gateway/session store unhealthy — relaunch-openclaw or wipe .openclaw/state"
     REMEDIABLE_FAIL=true
     ok=false
   fi
@@ -153,6 +154,10 @@ check_openclaw() {
       ok=false
       ;;
   esac
+  # OpenClaw 2026.10+: Control UI device pairing is mandatory (legacy bypass retired).
+  if "${SCRIPT_DIR}/openclaw-approve-pending-devices.sh" >/dev/null 2>&1; then
+    pass "Pending Control UI device pairing approved (if any)"
+  fi
   [[ "$ok" == "true" ]]
 }
 
@@ -160,8 +165,10 @@ check_demo_initial() {
   step "Layer 6: Demo initial state"
   local ok=true
   openshell gateway select "${GATEWAY_NAME}" >/dev/null 2>&1 || true
+  # OpenShell 0.1.6+: providers attach to the sandbox (inference.local removed).
   local provider
-  provider=$(openshell inference get 2>/dev/null | awk '/Provider:/ {print $2; exit}' || true)
+  provider=$(openshell sandbox provider list "${SANDBOX_NAME}" 2>/dev/null \
+    | awk 'NR>1 && $1 !~ /^NAME$/ {print $1; exit}' || true)
   if [[ "$provider" == "maas-direct" ]]; then
     pass "Inference provider maas-direct"
   else
@@ -170,7 +177,7 @@ check_demo_initial() {
     ok=false
   fi
   if make -C "$DEPLOY_DIR" validate-demo-initial >/dev/null 2>&1; then
-    pass "Demo-initial policy (MLflow-only egress + inference.local)"
+    pass "Demo-initial policy (MLflow-only egress + maas-direct)"
   else
     fail "Demo-initial policy check failed"
     REMEDIABLE_FAIL=true

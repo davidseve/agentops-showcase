@@ -559,7 +559,7 @@ def fetch_mlflow_traces(max_results: int) -> dict[str, Any]:
     namespace = ctx.get("namespace", "openshell")
 
     curl_script = (
-        f"curl -sk 'https://mlflow.{rhoai_ns}.svc:8443/api/2.0/mlflow/traces"
+        f"curl -sk 'https://mlflow.{rhoai_ns}.svc:8443/mlflow/api/2.0/mlflow/traces"
         f"?experiment_ids={experiment_id}&max_results={max_results}' "
         f"-H 'Authorization: Bearer {token}' "
         f"-H 'X-MLFLOW-WORKSPACE: {workspace}'"
