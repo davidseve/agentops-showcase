@@ -4,10 +4,13 @@ Reusable content for conference and internal talk proposals about the AgentOps s
 
 ## Workflow
 
-1. **Pick a base** — [`submissions/enterprise-agentops-rhoai.md`](submissions/enterprise-agentops-rhoai.md) is the canonical AgentOps + RHOAI proposal.
-2. **Copy the template** — [`template.md`](template.md) for a new event or angle (hands-on lab, shorter lightning, Spanish abstract, etc.).
-3. **Reuse blocks** — [`reusable-blocks.md`](reusable-blocks.md) holds key message, stack bullets, demo scenarios, links, and TDP mappings without duplicating full proposals.
-4. **Align with live assets** — keep abstract/comments in sync with [`demo-script.md`](../demo-script.md), [`demo/README.md`](../demo/README.md), and repo [`README.md`](../../README.md).
+1. **Pick a base** — [`submissions/enterprise-agentops-rhoai.md`](submissions/enterprise-agentops-rhoai.md) is the canonical AgentOps + RHOAI proposal (internal / TLDR-style).
+2. **Event-specific** — use a file under `submissions/` for the target venue:
+   - [`submissions/mwc27-ai-in-action.md`](submissions/mwc27-ai-in-action.md) — MWC Barcelona 2027 (GSMA form + RH Google Doc box)
+   - [`submissions/kubecon-eu-2027-agentic-ai.md`](submissions/kubecon-eu-2027-agentic-ai.md) — KubeCon EU 2027 Sessionize (Agentic AI track)
+3. **Copy the template** — [`template.md`](template.md) for a new event or angle (hands-on lab, shorter lightning, Spanish abstract, etc.).
+4. **Reuse blocks** — [`reusable-blocks.md`](reusable-blocks.md) holds key message, stack bullets, demo scenarios, links, and TDP mappings without duplicating full proposals.
+5. **Align with live assets** — keep abstract/comments in sync with [`demo-script.md`](../demo-script.md), [`demo/README.md`](../demo/README.md), and repo [`README.md`](../../README.md).
 
 When a proposal is accepted or rejected, add a one-line status note at the top of the submission file (`Status: submitted | accepted | rejected | delivered`).
 
@@ -20,7 +23,8 @@ docs/cfp/
 ├── reusable-blocks.md        # Copy-paste snippets
 └── submissions/
     ├── enterprise-agentops-rhoai.md   # Base proposal (saved 2026-03, Red Hat TLDR)
-    └── kubecon-eu-2027-agentic-ai.md  # KubeCon EU 2027 Sessionize submission (saved 2026-10, Agentic AI track)
+    ├── kubecon-eu-2027-agentic-ai.md  # KubeCon EU 2027 Sessionize submission (saved 2026-10, Agentic AI track)
+    └── mwc27-ai-in-action.md          # MWC27 AI in Action (joint + demo)
 ```
 
 ## Related source material

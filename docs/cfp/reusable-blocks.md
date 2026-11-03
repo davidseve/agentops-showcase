@@ -28,6 +28,12 @@ Production AgentOps on RHOAI: Sandbox, Zero-Trust Credentials, and Full Traceabi
 Bring Your Own Agent — Run It Safely on OpenShift AI
 ```
 
+**MWC Barcelona 2027 (AI in Action — joint + demo):** see [`submissions/mwc27-ai-in-action.md`](submissions/mwc27-ai-in-action.md)
+
+```
+When the Agent Can Touch the Network: Hardening Agentic Ops Live
+```
+
 ## One-line problem statement
 
 ```
