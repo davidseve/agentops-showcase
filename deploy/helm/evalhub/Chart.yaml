@@ -3,4 +3,4 @@ name: evalhub
 description: EvalHub evaluation control plane (optional, prepared for future use)
 type: application
 version: 0.1.0
-appVersion: "3.4"
+appVersion: "3.5"

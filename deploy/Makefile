@@ -99,12 +99,13 @@ SKIP_E2E ?=
 .PHONY: help demo deploy-agent launch-openclaw validate-full deploy-demo deploy-and-verify
 .PHONY: deploy-operators wait-operators deploy-platform deploy-database
 .PHONY: wait-dashboard-crd adopt-dashboard-config
-.PHONY: wait-mlflow-crd deploy-mlflow wait-evalhub-crd deploy-evalhub
+.PHONY: wait-mlflow-crd deploy-mlflow wait-evalhub-crd wait-trustyai-webhook deploy-evalhub
 .PHONY: wait-nemoguardrails-crd deploy-guardrails undeploy-guardrails validate-guardrails deploy-all
 .PHONY: helm-env deploy-openshell deploy-mlflow-openclaw-integration ensure-mlflow-experiment validate-openshell
 .PHONY: validate-openclaw validate-traces validate-security validate-demo-initial validate-demo-google-egress validate-scenario-a-baseline
 .PHONY: test-e2e test-ui test-security test-mlflow test-guardrails test-demo test-scenario-a
-.PHONY: undeploy-apps purge-dsci undeploy-operators cleanup-orphans undeploy-all
+.PHONY: undeploy-apps purge-mlflow-instances purge-mlflow-operator purge-dsci
+.PHONY: undeploy-operators cleanup-orphans undeploy-all
 .PHONY: deploy-openclaw-ui-proxy undeploy-openshell undeploy-everything
 .PHONY: openshell-sync-mtls openshell-register-gateway
 .PHONY: validate validate-cleanup validate-smoke deploy-all-quiet
@@ -269,13 +270,27 @@ deploy-mlflow: deploy-database wait-mlflow-crd
 # EvalHub is provisioned by TrustyAI (this project's own values.yaml sets
 # trustyai: Managed in deploy-platform), so the CRD always shows up — just
 # a registration race like wait-mlflow-crd/wait-dashboard-crd above.
+# Observed 2026-11-01 / 2026-11-02: CRD can exist while the TrustyAI conversion
+# webhook still has no endpoints → helm SSA fails with
+# trustyai-service-operator-webhook-service: no endpoints available.
 wait-evalhub-crd:
 	@echo "Waiting for EvalHub CRD..."
 	@until oc get crd evalhubs.trustyai.opendatahub.io >/dev/null 2>&1; do \
 		echo "  EvalHub CRD not ready yet..."; sleep 10; \
 	done
 
-deploy-evalhub: deploy-database wait-evalhub-crd
+wait-trustyai-webhook:
+	@echo "Waiting for TrustyAI conversion webhook endpoints..."
+	@i=0; until oc get endpoints trustyai-service-operator-webhook-service \
+		-n redhat-ods-applications \
+		-o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null | grep -q .; do \
+		i=$$((i+1)); if [ $$i -ge 60 ]; then \
+			echo "ERROR: TrustyAI webhook endpoints not ready after 300s"; exit 1; \
+		fi; \
+		echo "  TrustyAI webhook endpoints not ready yet..."; sleep 5; \
+	done
+
+deploy-evalhub: deploy-database wait-evalhub-crd wait-trustyai-webhook
 	$(HELM) upgrade --install $(EVALHUB_RELEASE) $(EVALHUB_CHART) $(HELM_OPTS)
 
 wait-nemoguardrails-crd:
@@ -517,13 +532,13 @@ deploy-openclaw-ui-proxy:
 	@echo "Verifying UI Route..."
 	@sleep 3
 	@HTTP_CODE=$$(curl -sk -o /dev/null -w '%{http_code}' \
-		"https://$(SANDBOX_NAME)--openclaw-ui.$(APPS_DOMAIN)/" 2>/dev/null || echo "000"); \
+		"https://default--$(SANDBOX_NAME)--openclaw-ui.$(APPS_DOMAIN)/" 2>/dev/null || echo "000"); \
 	if [ "$$HTTP_CODE" = "200" ] || [ "$$HTTP_CODE" = "301" ] || [ "$$HTTP_CODE" = "302" ]; then \
 		echo "OK: Control UI reachable via nginx bridge (HTTP $$HTTP_CODE)"; \
 	else \
 		echo "WARN: Expected 200/3xx, got HTTP $$HTTP_CODE (sandbox may not be launched yet)"; \
 	fi
-	@echo "UI URL: https://$(SANDBOX_NAME)--openclaw-ui.$(APPS_DOMAIN)"
+	@echo "UI URL: https://default--$(SANDBOX_NAME)--openclaw-ui.$(APPS_DOMAIN)"
 	@echo "Auth: enter OPENCLAW_GATEWAY_PASSWORD from secrets/secrets.env in Control UI settings"
 
 # Fast smoke checks for agent iteration (no Playwright / full E2E — see long-running-scripts skill)
@@ -556,19 +571,19 @@ validate-openshell:
 	@echo "OK: Route exists ($$(oc -n $(OPENSHELL_NAMESPACE) get route openshell-gw -o jsonpath='{.spec.host}'))"
 
 validate-openclaw:
-	@echo "=== OpenClaw Gateway Health ==="
+	@echo "=== OpenClaw Gateway Health + Session Store ==="
 	@# The gateway listens on a loopback bound *inside* the sandbox's own network
 	@# namespace (isolated from the "agent" container's netns) — must reach it via
 	@# `openshell sandbox exec`, not a plain `oc exec -c agent`, which gets
 	@# "curl: (7) Failed to connect" even though the process is alive. Same
 	@# mechanism launch-openclaw.sh already uses for its own health check.
 	@# Found + fixed 2026-08-05 during a from-scratch redeploy test.
-	@openshell gateway select $(GATEWAY_NAME) >/dev/null 2>&1 || true
-	@openshell sandbox exec -n $(SANDBOX_NAME) --no-tty --timeout 10 \
-		--env "HOME=/sandbox/workspace" \
-		-- bash -c 'curl -sf http://127.0.0.1:18789/health' >/dev/null
-	@echo "OK: Gateway process alive"
-	@echo "=== CLI: openclaw agent → inference.local → Response ==="
+	@# 2026-10-29: /health alone stays live when SQLite/FTS session stores break
+	@# (Control UI: "Couldn't finish this reply" / chat.history UNAVAILABLE).
+	@# validate-openclaw-session.sh exercises gateway sessions.list + FTS5.
+	@NAMESPACE=$(OPENSHELL_NAMESPACE) SANDBOX_NAME=$(SANDBOX_NAME) GATEWAY_NAME=$(GATEWAY_NAME) \
+		$(ROOT_DIR)/scripts/validate-openclaw-session.sh
+	@echo "=== CLI: openclaw agent → provider attach → Response ==="
 	@# NOTE: this bare `openclaw agent` CLI invocation cannot present the device
 	@# identity the running gateway process expects over its WebSocket, so it
 	@# silently falls back to an "embedded" in-process agent run (not routed
@@ -602,7 +617,7 @@ validate-traces:
 		ensure_mlflow_experiment || { echo "FAIL: could not ensure MLflow experiment"; exit 1; }; \
 		MLFLOW_TOKEN=$$(oc -n $(OPENSHELL_NAMESPACE) get secret $(SANDBOX_SA_NAME)-mlflow-token -o jsonpath='"'"'{.data.token}'"'"' | base64 -d); \
 		TRACES=$$(oc -n $(OPENSHELL_NAMESPACE) exec $(SANDBOX_NAME) -c agent -- \
-			bash -c "curl -sk '"'"'https://mlflow.redhat-ods-applications.svc:8443/api/2.0/mlflow/traces?experiment_ids=$${MLFLOW_EXPERIMENT_ID}&max_results=1'"'"' \
+			bash -c "curl -sk '"'"'https://mlflow.redhat-ods-applications.svc.cluster.local:8443/mlflow/api/2.0/mlflow/traces?experiment_ids=$${MLFLOW_EXPERIMENT_ID}&max_results=1'"'"' \
 			-H '"'"'Authorization: Bearer $${MLFLOW_TOKEN}'"'"' \
 			-H '"'"'X-MLFLOW-WORKSPACE: $(OPENSHELL_NAMESPACE)'"'"'" 2>/dev/null); \
 		COUNT=$$(echo "$$TRACES" | python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d.get('"'"'traces'"'"',[])))" 2>/dev/null); \
@@ -627,13 +642,10 @@ validate-security:
 	else \
 		echo "FAIL: github.com reachable (HTTP $$RESULT) — policy not enforcing"; exit 1; \
 	fi
-	@RESULT=$$(openshell sandbox exec -n $(SANDBOX_NAME) --no-tty -- \
-		bash -c 'curl -s -m 5 -o /dev/null -w "%{http_code}" https://inference.local/v1/models 2>/dev/null; echo'); \
-	RESULT=$$(echo "$$RESULT" | tr -d '[:space:]'); \
-	if [ "$$RESULT" = "200" ]; then \
-		echo "OK: inference.local reachable (HTTP $$RESULT)"; \
+	@if openshell sandbox provider list $(SANDBOX_NAME) 2>/dev/null | grep -q maas-direct; then \
+		echo "OK: inference provider maas-direct attached (OpenShell 0.1.6+ native path)"; \
 	else \
-		echo "FAIL: inference.local not reachable (HTTP $$RESULT)"; exit 1; \
+		echo "FAIL: provider maas-direct not attached — run launch-openclaw"; exit 1; \
 	fi
 
 validate-demo-initial:
@@ -655,13 +667,18 @@ validate-demo-initial:
 	else \
 		echo "FAIL: google.com reachable (HTTP $$RESULT) — run demo-reset.sh"; exit 1; \
 	fi
-	@RESULT=$$(openshell sandbox exec -n $(SANDBOX_NAME) --no-tty -- \
-		bash -c 'curl -s -m 5 -o /dev/null -w "%{http_code}" https://inference.local/v1/models 2>/dev/null; echo'); \
-	RESULT=$$(echo "$$RESULT" | tr -d '[:space:]'); \
-	if [ "$$RESULT" = "200" ]; then \
-		echo "OK: inference.local reachable (HTTP $$RESULT)"; \
+	@if openshell sandbox provider list $(SANDBOX_NAME) 2>/dev/null | grep -q maas-direct; then \
+		echo "OK: inference provider maas-direct attached (direct MaaS)"; \
 	else \
-		echo "FAIL: inference.local not reachable (HTTP $$RESULT)"; exit 1; \
+		echo "FAIL: provider maas-direct not attached — run launch-openclaw / demo-reset"; exit 1; \
+	fi
+	@RESULT=$$(curl -sk -o /dev/null -w "%{http_code}" \
+		"https://$(or $(OPENSHELL_WORKSPACE),default)--$(SANDBOX_NAME)--openclaw-ui.$(APPS_DOMAIN)/" 2>/dev/null || echo 000); \
+	RESULT=$$(echo "$$RESULT" | tr -d '[:space:]'); \
+	if [ "$$RESULT" = "200" ] || [ "$$RESULT" = "301" ] || [ "$$RESULT" = "302" ]; then \
+		echo "OK: OpenClaw gateway healthy (Control UI HTTP $$RESULT)"; \
+	else \
+		echo "FAIL: OpenClaw Control UI HTTP $$RESULT (expected 200)"; exit 1; \
 	fi
 
 validate-demo-google-egress:
@@ -682,13 +699,10 @@ validate-demo-google-egress:
 	else \
 		echo "FAIL: github.com reachable (HTTP $$RESULT) — policy too permissive"; exit 1; \
 	fi
-	@RESULT=$$(openshell sandbox exec -n $(SANDBOX_NAME) --no-tty -- \
-		bash -c 'curl -s -m 5 -o /dev/null -w "%{http_code}" https://inference.local/v1/models 2>/dev/null; echo'); \
-	RESULT=$$(echo "$$RESULT" | tr -d '[:space:]'); \
-	if [ "$$RESULT" = "200" ]; then \
-		echo "OK: inference.local reachable (HTTP $$RESULT)"; \
+	@if openshell sandbox provider list $(SANDBOX_NAME) 2>/dev/null | grep -q maas-direct; then \
+		echo "OK: inference provider maas-direct attached"; \
 	else \
-		echo "FAIL: inference.local not reachable (HTTP $$RESULT)"; exit 1; \
+		echo "FAIL: provider maas-direct not attached"; exit 1; \
 	fi
 
 validate-scenario-a-baseline:
@@ -730,13 +744,66 @@ test-scenario-a:
 # --- Undeploy targets ---
 # CRITICAL: DSCI must be deleted while the operator is still running,
 # otherwise the finalizer cannot be processed and DSCI gets stuck in Terminating.
-# Order: apps (evalhub/mlflow/db/platform) -> DSCI -> operator -> orphan cleanup.
+# Order: apps (evalhub/mlflow CRs/db/platform) -> MLflowOperator wait -> DSCI
+#        -> operator -> orphan cleanup.
+#
+# Observed 2026-10-30 (sandbox3406): undeploy left default-mlflowoperator in
+# Terminating with finalizer mlflow.opendatahub.io/mlflow-operator-protection.
+# Next deploy-all created a MLflow CR while the operator was still deleting →
+# deadlock (operator blocks delete while instances exist; instances will not
+# reconcile while the operator is deleting). Always drop MLflow CRs before the
+# DSC/platform tear-down marks MLflowOperator for deletion, then wait/force the
+# operator CR to leave before considering cleanup done.
 
 undeploy-apps:
 	-$(HELM) uninstall $(EVALHUB_RELEASE)
 	-$(HELM) uninstall $(MLFLOW_RELEASE)
+	@$(MAKE) purge-mlflow-instances
 	-$(HELM) uninstall $(DATABASE_RELEASE)
 	-$(HELM) uninstall $(PLATFORM_RELEASE)
+
+# Delete every MLflow instance CR (cluster-scoped API) so the MLflowOperator
+# protection finalizer can complete when DSC tears the operator down.
+purge-mlflow-instances:
+	@echo "Purging MLflow instance CRs (required before MLflowOperator can delete)..."
+	-@oc delete mlflow --all --all-namespaces --timeout=90s 2>/dev/null || true
+	-@for m in $$(oc get mlflow -A -o name 2>/dev/null); do \
+		echo "  force-removing finalizers on $$m"; \
+		oc patch "$$m" --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true; \
+		oc delete "$$m" --wait=false 2>/dev/null || true; \
+	done
+	@if oc get mlflow -A --no-headers 2>/dev/null | grep -q .; then \
+		echo "WARN: MLflow CRs still present after purge"; \
+		oc get mlflow -A 2>/dev/null || true; \
+	else \
+		echo "OK: no MLflow instance CRs remaining"; \
+	fi
+
+# After platform/DSC uninstall, MLflowOperator is marked for deletion. Wait for
+# it to go away; if the controller is already gone, strip the protection finalizer.
+purge-mlflow-operator:
+	@echo "Waiting for MLflowOperator CRs to finish deletion..."
+	@i=0; \
+	while oc get mlflowoperator --no-headers 2>/dev/null | grep -q .; do \
+		i=$$((i+1)); \
+		if [ $$i -gt 24 ]; then break; fi; \
+		echo "  still present (attempt $$i/24)..."; \
+		sleep 5; \
+	done
+	@if oc get mlflowoperator --no-headers 2>/dev/null | grep -q .; then \
+		echo "MLflowOperator still present — clearing protection finalizer..."; \
+		for m in $$(oc get mlflowoperator -A -o name 2>/dev/null); do \
+			oc patch "$$m" --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true; \
+			oc delete "$$m" --wait=false --timeout=30s 2>/dev/null || true; \
+		done; \
+		sleep 5; \
+	fi
+	@if oc get mlflowoperator --no-headers 2>/dev/null | grep -q .; then \
+		echo "WARN: MLflowOperator still present after finalizer strip"; \
+		oc get mlflowoperator -A 2>/dev/null || true; \
+	else \
+		echo "OK: no MLflowOperator CRs remaining"; \
+	fi
 
 purge-dsci:
 	@echo "Deleting DSCInitialization (operator must still be running)..."
@@ -769,9 +836,27 @@ cleanup-orphans:
 	-@CSV=$$(oc get csv -n agent-sandbox-system -o name 2>/dev/null | grep agent-sandbox); \
 		[ -n "$$CSV" ] && oc delete "$$CSV" -n agent-sandbox-system || true
 	-@oc delete namespace agent-sandbox-system --wait=false 2>/dev/null || true
+	@echo "Removing orphaned KServe/ODH webhooks that block redhat-ods-applications deletion..."
+	-@for wh in \
+		clusterservingruntime.serving.kserve.io \
+		inferencegraph.serving.kserve.io \
+		inferenceservice.serving.kserve.io \
+		llminferenceservice.serving.kserve.io \
+		llminferenceserviceconfig.serving.kserve.io \
+		servingruntime.serving.kserve.io \
+		trainedmodel.serving.kserve.io \
+		validating.odh-model-controller.opendatahub.io; do \
+		oc delete validatingwebhookconfiguration "$$wh" --ignore-not-found 2>/dev/null || true; \
+	done
+	-@for wh in \
+		inferenceservice.serving.kserve.io \
+		llminferenceservice.serving.kserve.io \
+		mutating.odh-model-controller.opendatahub.io; do \
+		oc delete mutatingwebhookconfiguration "$$wh" --ignore-not-found 2>/dev/null || true; \
+	done
 	@echo "Orphan cleanup complete."
 
-undeploy-all: undeploy-apps purge-dsci undeploy-operators cleanup-orphans
+undeploy-all: undeploy-apps purge-mlflow-operator purge-dsci undeploy-operators cleanup-orphans
 	@echo "All components undeployed."
 
 # Full-stack reset: everything this Makefile knows how to deploy, torn down in
@@ -867,6 +952,19 @@ validate-cleanup:
 		echo "FAIL: DataScienceCluster still exists"; exit 1; \
 	else \
 		echo "OK: no DataScienceCluster"; \
+	fi
+	@echo "=== MLflow CRs (deadlock guard) ==="
+	@if oc get mlflow -A --no-headers 2>/dev/null | grep -q .; then \
+		echo "FAIL: MLflow instance CR(s) still present — next deploy will deadlock with a Terminating MLflowOperator"; \
+		oc get mlflow -A 2>/dev/null || true; exit 1; \
+	else \
+		echo "OK: no MLflow instance CRs"; \
+	fi
+	@if oc get mlflowoperator --no-headers 2>/dev/null | grep -q .; then \
+		echo "FAIL: MLflowOperator still present (check deletionTimestamp / protection finalizer)"; \
+		oc get mlflowoperator -A -o wide 2>/dev/null || true; exit 1; \
+	else \
+		echo "OK: no MLflowOperator CRs"; \
 	fi
 	@echo "=== Agent Sandbox Operator (OLM) ==="
 	@AS_LEFTOVER=false; \

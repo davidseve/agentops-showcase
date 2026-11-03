@@ -1,13 +1,16 @@
 rhoai:
   enabled: true
   namespace: redhat-ods-operator
-  channel: stable-3.4
+  channel: stable-3.5
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   # Manual approval ensures no unreviewed upgrades land on the cluster.
   # The Makefile auto-approves the InstallPlan for the pinned channel/version
   # (the human review already happened when the channel was set in git).
   installPlanApproval: Manual
+  # Pin CSV for reproducibility (ADR-0006). Confirmed on redhat-operators
+  # catalog 2026-10-28: rhods-operator.3.5.2 (stable-3.5 currentCSV).
+  startingCSV: rhods-operator.3.5.2
 
 agentSandbox:
   enabled: true
@@ -16,6 +19,6 @@ agentSandbox:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Manual
-  # Pin CSV for reproducibility (ADR-0006). Confirmed on OCP 4.20.8 / redhat-operators
-  # catalog 2026-08-06: agent-sandbox-operator.v0.9.0 (OSC 1.13 Technology Preview).
+  # Pin CSV for reproducibility (ADR-0006). Confirmed on redhat-operators
+  # catalog 2026-10-28: agent-sandbox-operator.v0.9.0 (OSC 1.13 Technology Preview).
   startingCSV: agent-sandbox-operator.v0.9.0

@@ -5,4 +5,7 @@ metadata:
   name: {{ include "evalhub.namespace" . }}
   labels:
     {{- include "evalhub.labels" . | nindent 4 }}
+    # Required to reach maas-db / MLflow behind the DSCInitialization NetworkPolicy
+    # on redhat-ods-applications (ingress from opendatahub.io/generated-namespace).
+    opendatahub.io/generated-namespace: "true"
 {{- end }}

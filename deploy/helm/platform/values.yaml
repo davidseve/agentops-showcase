@@ -5,6 +5,9 @@ datasciencecluster:
       managementState: Managed
     llamastackoperator:
       managementState: Removed
+    # RHOAI 3.5 renames Llama Stack → OGX; keep Removed (demo does not use it).
+    ogx:
+      managementState: Removed
     mlflowoperator:
       managementState: Managed
     trustyai:
