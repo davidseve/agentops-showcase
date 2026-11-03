@@ -2,13 +2,13 @@
   "models": {
     "providers": {
       "inference": {
-        "baseUrl": "https://inference.local/v1",
-        "apiKey": "unused",
+        "baseUrl": "__INFERENCE_BASE_URL__",
+        "apiKey": "${OPENAI_API_KEY}",
         "api": "openai-completions",
         "models": [
           {
-            "id": "router",
-            "name": "Router",
+            "id": "__INFERENCE_MODEL__",
+            "name": "__INFERENCE_MODEL__",
             "reasoning": true,
             "input": ["text", "image"],
             "contextWindow": 200000,
@@ -22,14 +22,17 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "inference/router",
+        "primary": "inference/__INFERENCE_MODEL__",
         "fallbacks": []
       },
-      "models": {
-        "inference/router": { "alias": "Router" }
+      "modelPolicy": {
+        "allow": ["inference/__INFERENCE_MODEL__"]
       },
       "workspace": "/sandbox/workspace",
       "skipBootstrap": true
+    },
+    "entries": {
+      "main": {}
     }
   },
   "tools": {
@@ -77,9 +80,6 @@
     ],
     "reload": {
       "mode": "off"
-    },
-    "nodes": {
-      "denyCommands": ["system.run", "canvas.navigate"]
     },
     "http": {
       "endpoints": {

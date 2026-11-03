@@ -172,7 +172,8 @@ export_playwright_env() {
     source "$SECRETS_FILE"
     set +a
   fi
-  export OPENCLAW_BASE_URL="https://${SANDBOX_NAME}--openclaw-ui.${APPS_DOMAIN}"
+  # OpenShell 0.1.6+ service Host includes workspace: {workspace}--{sandbox}--openclaw-ui
+  export OPENCLAW_BASE_URL="https://${OPENSHELL_WORKSPACE:-default}--${SANDBOX_NAME}--openclaw-ui.${APPS_DOMAIN}"
   export MLFLOW_BASE_URL="https://rh-ai.${APPS_DOMAIN}/mlflow"
   export MLFLOW_WORKSPACE="$NAMESPACE"
   if [[ -n "${OCP_TEST_USERNAME:-}" ]]; then
@@ -194,33 +195,41 @@ export_playwright_env() {
   resolve_mlflow_experiment_id || warn "MLFLOW_EXPERIMENT_ID not resolved — mlflow-ui-tests may fail"
 }
 
-# Pick a pod that can reach mlflow.<rhoai-ns>.svc from inside the cluster.
-# OpenShell gateway (ghcr.io/nvidia/openshell/gateway) is distroless — no shell/curl.
-# Do not exec into it (observed 2026-10-08: bash/sh/ls all missing).
-_mlflow_exec_target() {
-  if oc -n "$NAMESPACE" get pod "$SANDBOX_NAME" &>/dev/null 2>&1; then
-    _MLFLOW_EXEC_POD="$SANDBOX_NAME"
-    _MLFLOW_EXEC_CONTAINER="agent"
+# OpenShell 0.1.6+ names the workload pod `{workspace}--{sandbox}` (e.g.
+# default--openclaw-gw). Older charts used the bare sandbox name. Prefer the
+# namespaced form, then fall back to the bare name.
+resolve_sandbox_pod() {
+  local ns="${1:-$NAMESPACE}"
+  local name="${2:-$SANDBOX_NAME}"
+  local workspace="${OPENSHELL_WORKSPACE:-default}"
+  local candidate
+  for candidate in "${workspace}--${name}" "${name}"; do
+    if oc -n "$ns" get pod "$candidate" &>/dev/null; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  # Last resort: suffix match (workspace may differ).
+  candidate="$(oc -n "$ns" get pods -o name 2>/dev/null \
+    | sed -n "s|^pod/\\(.*--${name}\\)$|\\1|p" | head -1)"
+  if [[ -n "$candidate" ]]; then
+    printf '%s\n' "$candidate"
     return 0
   fi
   return 1
 }
 
-# Run curl inside the cluster. Prefer the OpenClaw sandbox agent; before the
-# sandbox exists, use an ephemeral curlimages/curl pod (same image as the Helm
-# openclaw-mlflow-experiment job). curl_cmd already embeds the Bearer token.
+# Run curl inside the cluster via an ephemeral curlimages/curl pod (same image
+# as the Helm openclaw-mlflow-experiment job). Do NOT prefer the OpenClaw
+# sandbox agent: demo policy allowlists only /usr/bin/node for MLflow, so
+# sandbox `curl` is denied (and UBI node images may lack curl). curl_cmd
+# already embeds the Bearer token from openshell-sandbox-mlflow-token.
 # Avoid `oc run --rm -i` — its "pod deleted" line pollutes stdout and breaks JSON.
 _mlflow_cluster_curl() {
   local curl_cmd="$1"
   local job_image="${MLFLOW_CURL_IMAGE:-docker.io/curlimages/curl:8.10.1}"
   local pod_name
   local i
-
-  if _mlflow_exec_target; then
-    oc -n "$NAMESPACE" exec "$_MLFLOW_EXEC_POD" -c "$_MLFLOW_EXEC_CONTAINER" -- \
-      sh -c "$curl_cmd" 2>/dev/null || true
-    return 0
-  fi
 
   pod_name="mlflow-api-$(date +%s)-$RANDOM"
   oc -n "$NAMESPACE" delete pod "$pod_name" --ignore-not-found --wait=false &>/dev/null || true
@@ -275,7 +284,8 @@ except Exception:
 ensure_mlflow_experiment() {
   local experiment_name="${MLFLOW_EXPERIMENT_NAME:-openclaw-tracing}"
   local workspace="${MLFLOW_WORKSPACE:-$NAMESPACE}"
-  local mlflow_url="https://mlflow.${RHOAI_NS}.svc:8443"
+  # MLflow 3.14 Tracking API root is .../mlflow (CR status.address.url).
+  local mlflow_url="https://mlflow.${RHOAI_NS}.svc:8443/mlflow"
   local exp_json exp_id token
 
   if [[ -n "${MLFLOW_EXPERIMENT_ID:-}" && "${MLFLOW_EXPERIMENT_ID}" != "__RESOLVE__" ]]; then
@@ -373,3 +383,4 @@ ensure_playwright_deps() {
     (cd "$tests_dir" && npx playwright install chromium)
   fi
 }
+
