@@ -36,9 +36,23 @@ GW_ROUTE="$(oc -n "${NAMESPACE}" get route openshell-gw -o jsonpath='{.spec.host
 [[ -n "${GW_ROUTE}" ]] || die "Route openshell-gw not found in namespace ${NAMESPACE} (deploy OpenShell first)"
 log "Gateway Route: https://${GW_ROUTE}"
 
+# `openshell gateway list` marks the selected alias with a leading `*` column
+# (`* ocp https://...`), so the name is $1 when idle and $2 when selected.
+_gateway_list_name_field() {
+  # Prints: name<TAB>endpoint_url for each row (header skipped).
+  openshell gateway list 2>/dev/null | awk '
+    NR<=1 { next }
+    {
+      if ($1 == "*") { name=$2; ep=$3 }
+      else { name=$1; ep=$2 }
+      print name "\t" ep
+    }
+  '
+}
+
 gateway_listed() {
-  openshell gateway list 2>/dev/null | awk -v n="${GATEWAY_NAME}" '
-    NR>1 { g=$1; sub(/^\*/,"",g); if (g==n) found=1 }
+  _gateway_list_name_field | awk -F'\t' -v n="${GATEWAY_NAME}" '
+    $1==n { found=1 }
     END { exit !found }
   '
 }
@@ -46,13 +60,40 @@ gateway_listed() {
 # openshell status only reports on the *currently selected* alias — select
 # ours first so a different, healthy alias selected locally cannot fake
 # "already connected".
+#
+# Also compare the registered endpoint host to the live Route. A prior cluster
+# (e.g. agentops-demojam vs agentops-demojam-latest) can still answer
+# `openshell status` and would otherwise skip re-register — then sandbox
+# create fails with protobuf/schema mismatches across gateway versions
+# (observed 2026-10-28: CLI 0.1.6 → stale 0.0.83 gateway).
+gateway_endpoint_host() {
+  _gateway_list_name_field | awk -F'\t' -v n="${GATEWAY_NAME}" '
+    $1==n {
+      ep=$2
+      sub(/^https:\/\//,"",ep)
+      sub(/\/.*/,"",ep)
+      sub(/:.*/,"",ep)
+      print ep
+      exit
+    }
+  '
+}
+
 GATEWAY_ALREADY_REGISTERED=false
+STALE_ENDPOINT=false
 if gateway_listed; then
   GATEWAY_ALREADY_REGISTERED=true
   openshell gateway select "${GATEWAY_NAME}" &>/dev/null || true
+  registered_host="$(gateway_endpoint_host)"
+  if [[ -n "${registered_host}" && "${registered_host}" != "${GW_ROUTE}" ]]; then
+    STALE_ENDPOINT=true
+    log "Gateway '${GATEWAY_NAME}' points at ${registered_host}, cluster Route is ${GW_ROUTE} — re-registering"
+  fi
 fi
 
-if [[ "${GATEWAY_ALREADY_REGISTERED}" != "true" ]] || ! openshell status &>/dev/null; then
+if [[ "${GATEWAY_ALREADY_REGISTERED}" != "true" ]] \
+  || [[ "${STALE_ENDPOINT}" == "true" ]] \
+  || ! openshell status &>/dev/null; then
   openshell gateway remove "${GATEWAY_NAME}" 2>/dev/null || true
   openshell gateway add "https://${GW_ROUTE}" --local --name "${GATEWAY_NAME}"
   openshell gateway select "${GATEWAY_NAME}"

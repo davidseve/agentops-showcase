@@ -3,7 +3,8 @@
 # `dependencies[].alias`) and passed straight through to the real OpenShell
 # subchart dependency rendered as part of this same release.
 #
-# Validated on OpenShift 4.x with SCC restricted (gateway) + privileged (sandboxes).
+# Validated target: OpenShell helm-chart 0.1.6 on OpenShift with SCC
+# restricted-v2 (gateway) + privileged (sandboxes via wrapper RoleBinding).
 #
 # Prerequisites (not installed by this chart):
 #   - Red Hat build of Agent Sandbox Operator: deploy/helm/operators/ (make deploy-operators)
@@ -32,37 +33,51 @@ openshift:
     serviceAccount: ""
 
 # --- Upstream subchart overrides (alias: openshell) ---
+# Schema matches OpenShell helm-chart 0.1.6 (oci://ghcr.io/nvidia/openshell).
+# SCC nulls mirror upstream ci/values-openshift-scc.yaml.
 
 openshell:
-  # The version actually installed is pinned in Chart.yaml's
-  # `dependencies[].version` + Chart.lock (Helm's own dependency-pinning
-  # mechanism) — that is the single source of truth per
-  # docs/adr/0006-explicit-version-pinning.md. Keep these tags in sync with
-  # that version; a mismatch here silently pins the wrong image tag even
-  # though the chart itself was correctly resolved.
-  image:
-    repository: ghcr.io/nvidia/openshell/gateway
-    tag: "0.0.83"
-    pullPolicy: IfNotPresent
+  # Single pin for gateway / supervisor / sandboxRuntime images (ADR-0006).
+  # Empty tag would fall back to chart appVersion; keep explicit for readability.
+  global:
+    image:
+      registry: ghcr.io/nvidia
+      tag: "0.1.6"
+      pullPolicy: IfNotPresent
+
+  # OpenShift restricted-v2: let the SCC assign UID / fsGroup (null overrides).
+  podSecurityContext: null
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: null
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
   supervisor:
-    image:
-      repository: ghcr.io/nvidia/openshell/supervisor
-      tag: "0.0.83"
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: null
+      runAsGroup: null
+      fsGroup: null
+      seccompProfile:
+        type: RuntimeDefault
 
   # TLS + certgen hook (default). Do not disable pkiInitJob on OpenShift.
   # See: https://github.com/NVIDIA/OpenShell/issues/2089
   server:
     disableTls: false
-    sandboxImage: ghcr.io/nvidia/openshell-community/sandboxes/base:latest
     logLevel: info
     auth:
       # Gateway's own CLI/gRPC endpoint is mTLS-only (client cert required, see
       # openshell-client-tls secret) — "unauthenticated" means no *additional*
-      # bearer token on top of the client cert, not open access. Was previously
-      # unset here (no default at all), which made `helm template` fail outright
-      # with a nil-pointer error — found and fixed 2026-08-05 while redeploying
-      # from scratch. See docs/adr/0003-openshell-deployment-on-openshift.md.
+      # bearer token on top of the client cert, not open access. Upstream
+      # 0.1.6 defaults this to false; keep true so the openshell CLI keeps
+      # working with mTLS alone (demo auth model — ADR-0003 / ADR-0011).
       allowUnauthenticatedUsers: true
 
   pkiInitJob:
@@ -79,12 +94,10 @@ openshell:
   networkPolicy:
     enabled: true
 
-  # Let OpenShift SCC admission assign UID and fsGroup.
-  podSecurityContext:
-    fsGroup: null
-
-  securityContext:
-    runAsUser: null
+  # Chart-native OpenShift Route is left disabled; this wrapper owns
+  # openshell-gw (templates/route.yaml) + Makefile SAN injection.
+  openshiftRoute:
+    enabled: false
 
 # Route (existing gRPC route for openshell CLI)
 route:

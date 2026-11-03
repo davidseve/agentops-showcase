@@ -18,19 +18,22 @@ process:
   run_as_group: sandbox
 
 network_policies:
-  # LLM inference: handled by OpenShell's inference router (inference.local).
-  # No explicit network policy needed — inference.local traffic is internal
-  # to the OpenShell proxy. Provider credentials injected at the gateway layer.
+  # LLM inference (OpenShell 0.1.6+): authorized by the attached provider
+  # profile (MaaS / NeMo hosts), not inference.local (removed upstream).
+  # Provider-derived endpoints merge into the effective sandbox policy.
 
   mlflow_direct:
     name: rhoai-mlflow-direct-traces
+    # L4 + tls:skip — Node does end-to-end TLS to MLflow (Bearer + /mlflow API root).
+    # OpenShell 0.1.6 rejects tls:skip together with protocol: rest (schema).
     endpoints:
-      - host: "mlflow.redhat-ods-applications.svc"
+      # OpenShell 0.1.6+ DNS: short ".svc" returns ENOTFOUND inside the sandbox;
+      # FQDN ".svc.cluster.local" resolves and connects (validated 2026-11-02).
+      - host: "mlflow.redhat-ods-applications.svc.cluster.local"
         port: 8443
-        protocol: rest
-        enforcement: enforce
-        access: read-write
         tls: skip
     # node: OpenClaw gateway + mlflow-openclaw trace export (not curl — validation uses oc exec)
     binaries:
       - { path: /usr/bin/node }
+      - { path: /usr/bin/node.* }
+      - { path: /usr/local/bin/node }
