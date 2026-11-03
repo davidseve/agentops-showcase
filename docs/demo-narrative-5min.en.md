@@ -33,11 +33,11 @@ Split screen: [`v5/live.html`](demo/v5/live.html) (left) + Control UI / OpenClaw
 
 **Spoken text:**
 
-When we have conversations with our customers about adopting agentic architectures, security is one of the biggest challenges we run into.
+When customers talk about adopting agents, security is the blocker — every call. Agents are powerful because they are non-deterministic; enterprises need fixed boundaries the agent cannot cross.
 
-With BYO agent we are enabling the ability to deploy any agent/harness, and that can create many security problems if we cannot configure security guardrails to limit what it may or may not do. Running skills, creating scripts, reaching the internet — in short, an agent that by default can perform many complex and potentially dangerous tasks.
+With BYOA we let you bring any harness — OpenClaw in this demo. That is powerful, and dangerous by default at the same time: Stuff like running skills, writing scripts, reaching the internet.. they are complex tasks with no fixed walls. Without a trusted control path for credentials, filesystem, network, and model behavior (if we can't provide security guardrails that enforce what the agent may and may not do) — IT’s default is to ban them.
 
-That is why we prepared a demo to showcase the security capabilities RHOAI provides, so we can help our customers deploy these agents safely in their production environments.
+That is why we prepared a demo to showcase the security capabilities provided by RHOAI, so we can help our customers deploy these agents safely in their production environments.
 
 The demo is organized in two panels: on the left, a visual representation of the architecture with a series of guided steps that let us explain different security scenarios; on the right, OpenClaw, which we will use as the harness to interact with the model and see how it behaves.
 
@@ -48,7 +48,11 @@ The demo is organized in two panels: on the left, a visual representation of the
 1. **Copy prompt** (key-audit — same as v1 / `demo-script.md`).
 2. **Play** in Control UI.
 
-**Expected:** no real key (`apiKey: unused` / empty env). The agent does not know which model it uses and does not hold the API key: it talks to `inference.local`; the gateway injects the credential.
+<!-- **Expected:** no real key (`apiKey: unused` / empty env).  -->
+
+Let's try to retrieve the api key.
+
+The agent does not know which model it uses and does not hold the API key: it talks to `inference.local`; the gateway injects the credential.
 
 **Line:** “The key is injected at the gateway; the sandbox does not have it.”
 
@@ -57,11 +61,11 @@ The demo is organized in two panels: on the left, a visual representation of the
 1. **Copy prompt** (`cat /etc/shadow`).
 2. **Play**.
 
-**Expected:** Permission denied (OpenShell sandbox / Landlock).
+<!-- **Expected:** Permission denied (OpenShell sandbox / Landlock). -->
 
-**Line:** “System files were already locked down from minute zero.”
+Let's try to access a system file the agent is not supposed to 
 
-Do not run `ls` or contrast the workspace.
+**Line:** “System files are already locked down from day one.”
 
 ### 1:40–2:45 — Test C + Change 1 (egress)
 
@@ -69,6 +73,8 @@ Do not run `ls` or contrast the workspace.
 
 1. **Copy prompt** (`curl -sI https://google.com`).
 2. **Play** → **blocked**.
+
+By default, everything is blocked. No external network access is allowed.
 
 **Line:** “We control the agent’s connectivity from the gateway.”
 
@@ -80,8 +86,6 @@ Do not run `ls` or contrast the workspace.
 
 **Line:** “One policy lever; no sandbox rebuild. The agent does not change.”
 
-Advance the companion to C-after when the 200 is on screen.
-
 ### 2:45–4:05 — Test D + Change 2 (NeMo)
 
 #### D.before — full access to model capabilities
@@ -89,7 +93,7 @@ Advance the companion to C-after when the 200 is on screen.
 1. **Copy prompt** (network recon — same as v1).
 2. **Play** → potentially dangerous response (script / recon plan).
 
-While it generates: “Without Guardrails, the model can deliver the dangerous task; it does not need to execute it.”
+While it generates: “Without Guardrails, the model can deliver a potentially dangerous task; it does not need to execute it.”
 
 #### D.after — NeMo Guardrails in action
 
@@ -100,13 +104,15 @@ While it generates: “Without Guardrails, the model can deliver the dangerous t
 
 **Line:** “OpenClaw still calls `inference.local`; the backend changes. The guardrail cuts — not the harness.”
 
-If the model drags on D-before: do not pad with theory; around ~3:50 on the clock, start Change 2 even if the script is unfinished (before/after still holds if before already produced code).
+<!-- If the model drags on D-before: do not pad with theory; around ~3:50 on the clock, start Change 2 even if the script is unfinished (before/after still holds if before already produced code). -->
 
 ### 4:05–4:30 — MLflow (traceability)
 
 Open Gen AI Studio / experiment `openclaw-tracing` for **this** session (or the companion MLflow tab).
 
-Show the **curl to google**: same kind of trace, **different Response** — blocked vs allowed. With MLflow we get full traceability: actions, commands, LLM invocations, prompts.
+Show the **curl to google**: same kind of trace, **different Response** — blocked vs allowed. 
+
+With MLflow we get full traceability: actions, commands, LLM invocations, prompts.
 
 **Line:** “Success and failure in the same place — platform observability, not an add-on.”
 
@@ -116,11 +122,9 @@ If time is short: only the curl deny → allow contrast.
 
 Return to the **Overall Demo** step in the companion and hit **Play**. While it runs, a short summary of the security path just shown (credentials, files, egress, Guardrails, traces).
 
-### 4:45–5:00 — Roadmap + GitOps + close
+### 4:45–5:00 — Deployment/installation + close
 
-Call out capabilities we will add next (project nice-to-haves): EvalHub/Garak red teaming ([`demo-narrative-v2.md`](demo-narrative-v2.md)), MCP Gateway, cost/showback.
-
-**Line:** “The whole deployment is GitOps-based; standing it up on RHPDS / demo.redhat.com is straightforward.”
+**Line:** “The whole deployment is GitOps-based and Agent-skills-driven; standing it up on RHPDS / demo.redhat.com is straightforward.”
 
 Tagline: *Your Agent. Our Platform. Production-Ready.*
 
