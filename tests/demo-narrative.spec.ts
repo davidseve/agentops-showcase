@@ -31,6 +31,8 @@ function runDemoScript(script: string): void {
 test.describe.configure({ mode: 'serial', timeout: 180_000 });
 
 test.describe('Demo narrative v1 (Tests A–D + Change 1/2)', () => {
+  // demo-reset is fast when already on direct MaaS; allow headroom for a real
+  // switch + Control UI reconnect (observed 2026-11-02 beforeAll timeouts).
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     runDemoScript('demo-reset.sh');
     sharedContext = await browser.newContext({
@@ -38,9 +40,9 @@ test.describe('Demo narrative v1 (Tests A–D + Change 1/2)', () => {
       ignoreHTTPSErrors: true,
     });
     sharedPage = await sharedContext.newPage();
-    await connectControlUi(sharedPage, '/');
+    await connectControlUi(sharedPage, '/', 90_000);
     await resetChatSession(sharedPage);
-  });
+  }, { timeout: 300_000 });
 
   test.afterAll(async () => {
     await sharedPage?.close().catch(() => {});

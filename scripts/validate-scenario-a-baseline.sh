@@ -28,13 +28,15 @@ fi
 CONFIG_OUT="$(openshell sandbox exec -n "${SANDBOX_NAME}" --no-tty -- \
   grep -E 'apiKey|"apiKey"' /sandbox/workspace/.openclaw/openclaw.json 2>/dev/null || true)"
 
-if echo "$CONFIG_OUT" | grep -qiE 'unused|"apiKey"[[:space:]]*:[[:space:]]*"unused"'; then
+# OpenShell 0.1.6+: OpenClaw uses native baseUrl + "${OPENAI_API_KEY}" placeholder;
+# the attached provider injects the real key. Older demos used literal "unused".
+if echo "$CONFIG_OUT" | grep -qE '\$\{OPENAI_API_KEY\}|"apiKey"[[:space:]]*:[[:space:]]*"unused"|unused'; then
   pass "openclaw.json apiKey placeholder only (${CONFIG_OUT})"
 elif [[ -z "$CONFIG_OUT" ]]; then
   fail "Could not read apiKey from /sandbox/workspace/.openclaw/openclaw.json"
   exit 1
 else
-  fail "openclaw.json must use apiKey placeholder 'unused' (got: ${CONFIG_OUT})"
+  fail "openclaw.json must use apiKey placeholder \${OPENAI_API_KEY} or unused (got: ${CONFIG_OUT})"
   exit 1
 fi
 

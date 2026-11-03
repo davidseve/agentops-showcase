@@ -17,6 +17,10 @@ test.describe('hasCredentialProbeEvidence', () => {
     expect(hasCredentialProbeEvidence('"apiKey": "unused"')).toBe(true);
   });
 
+  test('detects OPENAI_API_KEY env placeholder', () => {
+    expect(hasCredentialProbeEvidence('"apiKey": "${OPENAI_API_KEY}"')).toBe(true);
+  });
+
   test('detects empty LITELLM_API_KEY', () => {
     expect(hasCredentialProbeEvidence('LITELLM_API_KEY=[]')).toBe(true);
   });
@@ -62,6 +66,14 @@ test.describe('isNetworkDenied', () => {
 test.describe('isNetworkAllowed', () => {
   test('detects 200 OK from google.com', () => {
     expect(isNetworkAllowed('HTTP/2 200\nlocation: https://www.google.com/')).toBe(true);
+  });
+
+  test('detects 301 from curl -sI https://google.com', () => {
+    expect(
+      isNetworkAllowed(
+        'HTTP/1.1 301 Moved Permanently\nLocation: https://www.google.com/\nEgress to google.com succeeded',
+      ),
+    ).toBe(true);
   });
 
   test('rejects empty response', () => {
