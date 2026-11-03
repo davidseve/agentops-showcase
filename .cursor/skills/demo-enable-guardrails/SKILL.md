@@ -1,10 +1,10 @@
 ---
 name: demo-enable-guardrails
 description: >-
-  Live demo Change 2: switch inference.local to NeMo Guardrails provider while
-  OpenClaw keeps calling inference.local. Use during demo-narrative-v1 phase 3,
-  enable guardrails on stage, demo-enable-guardrails, or before repeating security
-  reconnaissance Test D.
+  Live demo Change 2: re-attach OpenShell provider from maas-direct to
+  maas-guardrailed (NeMo) and point OpenClaw baseUrl at the NeMo service.
+  Use during demo-narrative-v1 phase 3, enable guardrails on stage,
+  demo-enable-guardrails, or before repeating security reconnaissance Test D.
 ---
 
 # Demo Enable Guardrails (Change 2)
@@ -53,6 +53,8 @@ Update `v5/live.html` step nav → Guardrails **on** (auto-updates).
 |---|---|
 | Provider not found | Re-run `launch-openclaw` |
 | Recon not blocked | Confirm script output shows `maas-guardrailed` |
+| Script exit 1 / baseUrl mismatch | Fixed by `oc exec -i` in `patch_openclaw_inference_base_url`; re-run script |
+| Couldn't connect to AI service after Change 2 | Provider/baseUrl desync — re-run `demo-enable-guardrails.sh` or `demo-reset.sh` |
 | Internal server error | Redeploy guardrails (streaming rails); see nemo-guardrails-installation.md |
 | Live failure | Pre-recorded fallback clip |
 

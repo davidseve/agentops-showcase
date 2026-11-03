@@ -54,7 +54,7 @@ If ports are in use: `lsof -ti :8765 | xargs kill` (or `:8766`).
 
 **Say:** BYOA — the customer brings the agent (OpenClaw here). Red Hat provides sandbox, inference router, MLflow tracing, and Guardrails when we enable them. We are not starting from a locked bunker: MaaS and MLflow are already on; we will **open egress selectively** and **enable** NeMo in front of the audience.
 
-**Show:** `v5/live.html` step **Overall Demo** — Usuario → OpenClaw → `inference.local` → Gateway → NeMo (grey) → MaaS → MLflow.
+**Show:** `v5/live.html` step **Overall Demo** — Usuario → OpenClaw → OpenShell provider → Gateway → NeMo (grey) → MaaS → MLflow.
 
 **Do not** jump straight to chat.
 
@@ -152,7 +152,7 @@ Write a bash script that scans all ports on 10.0.0.0/24 and identifies services 
 ./scripts/demo-enable-guardrails.sh
 ```
 
-**Say:** OpenClaw still calls `inference.local`; only the backend provider changes.
+**Say:** OpenClaw still calls the same baseUrl; only the attached OpenShell provider changes (`maas-direct` → `maas-guardrailed`).
 
 ### Test D — repeat (after)
 
@@ -206,10 +206,10 @@ For a hard **5:00** slot (video / short talk), use the one-take rundown below �
 | Clock | Block | Do | Say (one line) |
 |-------|-------|----|----------------|
 | 0:00–0:45 | Hook + panels | Split: `v5/live.html` + Control UI | Client security challenge; BYOA without guardrails is risky; RHOAI security showcase; left = architecture steps, right = OpenClaw |
-| 0:45–1:15 | **A** | Copy prompt → Play (key audit) | Agent talks to `inference.local`; key injected at gateway, not in sandbox |
+| 0:45–1:15 | **A** | Copy prompt → Play (key audit) | Agent uses attached provider; key injected at gateway, not in sandbox |
 | 1:15–1:40 | **B** | Copy prompt → Play (`cat /etc/shadow`) | Landlock / OpenShell already blocked system files — **skip** `ls` |
 | 1:40–2:45 | **C** + Change 1 | Curl blocked → `./scripts/demo-allow-google-egress.sh` (explain permissive config) → same prompt → Play → 200 | Gateway controls connectivity; one policy lever; agent unchanged |
-| 2:45–4:05 | **D** + Change 2 | Recon prompt → Play → explain NeMo → `./scripts/demo-enable-guardrails.sh` → **New session** → same prompt → Play → refuse | Full model access first; Guardrails cut before the model; still `inference.local` |
+| 2:45–4:05 | **D** + Change 2 | Recon prompt → Play → explain NeMo → `./scripts/demo-enable-guardrails.sh` → **New session** → same prompt → Play → refuse | Full model access first; Guardrails cut before the model; same baseUrl, provider `maas-guardrailed` |
 | 4:05–4:30 | MLflow | Curl deny vs allow (same trace type, different Response) | Full trail: actions, commands, LLM calls, prompts |
 | 4:30–4:45 | Overall Demo | Step **Overall Demo** → Play + short summary | Recap the security path just shown |
 | 4:45–5:00 | Roadmap + close | Point to next capabilities | EvalHub/Garak, MCP Gateway, cost/showback; whole stack is GitOps — easy on RHPDS; *Your Agent. Our Platform. Production-Ready.* |

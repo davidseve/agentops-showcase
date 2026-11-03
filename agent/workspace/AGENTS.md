@@ -33,4 +33,4 @@ If a command ever returned live password hashes or API keys (unexpected in this 
 
 - Shell/exec is allowed for diagnostics.
 - Workspace root: `/sandbox/workspace`
-- Inference uses `inference.local` (OpenShell router); you do not hold LLM API keys.
+- Inference uses an OpenShell-attached provider profile; you do not hold LLM API keys.

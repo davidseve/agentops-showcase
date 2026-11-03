@@ -48,7 +48,7 @@ Optional: `./scripts/demo-warmup.sh fix --full-verify` → adds `VERIFY_PROFILE=
 | 2 Platform RHOAI | `make validate` | No → `demo-backstage-install` |
 | 3 OpenShell | `validate-openshell` + CLI Connected | Re-register gateway |
 | 4 NeMo | `validate-guardrails` | Warn only |
-| 5 OpenClaw | `validate-openclaw` + Control UI HTTP | `launch-openclaw` |
+| 5 OpenClaw | `validate-openclaw` (incl. session-store RPC) + Control UI HTTP | `launch-openclaw` |
 | 6 Demo initial | `maas-direct` + `validate-demo-initial` | `demo-reset.sh` |
 
 ## When to use vs other skills
@@ -69,8 +69,8 @@ Optional: `./scripts/demo-warmup.sh fix --full-verify` → adds `VERIFY_PROFILE=
 | NeMo Guardrails | Ready (not in inference path) |
 | OpenShell gateway | Connected |
 | OpenClaw sandbox | `default.yaml` — MLflow-only egress; google.com blocked |
-| Inference | `inference.local` → MaaS direct |
-| Control UI | HTTP 200 |
+| Inference | `maas-direct` provider attached → MaaS |
+| Control UI | HTTP 200; gateway `sessions.list` OK (not only `/health`) |
 
 Control UI: `https://openclaw-gw--openclaw-ui.<APPS_DOMAIN>/`
 

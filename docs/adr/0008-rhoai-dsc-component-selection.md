@@ -32,6 +32,13 @@ Enable only the components required for this demo. All others stay at
 | trustyai | NeMo Guardrails deployment path (EvalHub for red teaming) |
 | kserve | Required for TrustyAI's eval/lmeval readiness — `TrustyAIReady` blocks on the `InferenceServices` CRD until `kserve` is `Managed` (found 2026-08-14, see ROADMAP.md). Not otherwise consumed directly by this project yet. |
 
+### Explicitly Removed (RHOAI 3.5)
+
+| Component | Rationale |
+|---|---|
+| `llamastackoperator` | Legacy Llama Stack path; demo does not use it |
+| `ogx` | RHOAI 3.5 rename of Llama Stack → OGX; kept `Removed` so a clean install does not enable it |
+
 ### Deployment ordering fixes
 
 The Makefile must implement:

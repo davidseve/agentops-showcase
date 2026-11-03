@@ -43,12 +43,12 @@ La demo está organizada en dos paneles: a la izquierda vemos una representació
 
 *(Companion en paso A o Overall Demo listo; no hace falta recorrer todo el mapa capa a capa.)*
 
-### 0:45–1:15 — Prueba A (`inference.local` / API key)
+### 0:45–1:15 — Prueba A (provider / API key)
 
 1. **Copy prompt** (auditor de key — mismo que v1 / `demo-script.md`).
 2. **Play** en Control UI.
 
-**Esperado:** sin key real (`apiKey: unused` / env vacío). El agente no sabe qué modelo usa ni tiene la API key: habla con `inference.local`; el gateway inyecta la credencial.
+**Esperado:** sin key real en el sandbox. El agente no tiene la API key: usa el `baseUrl` con placeholder; el gateway inyecta la credencial del provider `maas-direct`.
 
 **Frase:** “La key la inyecta el gateway; el sandbox no la tiene.”
 
@@ -98,7 +98,7 @@ Mientras genera: “Sin Guardrails, el modelo puede entregar la tarea peligrosa;
 3. **New session** en Control UI.
 4. Mismo prompt → **Play** → rechazo / rail (“I can't respond” o equivalente).
 
-**Frase:** “OpenClaw sigue en `inference.local`; cambia el backend. Quien corta es el guardrail, no el harness.”
+**Frase:** “OpenClaw sigue con el mismo baseUrl; cambia el provider a `maas-guardrailed`. Quien corta es el guardrail, no el harness.”
 
 Si el modelo se demora en D-before: no rellenar con teoría; a ~3:50 de reloj, lanzar Change 2 aunque el script no haya terminado (el contraste before/after sigue siendo válido si el before ya generó código).
 

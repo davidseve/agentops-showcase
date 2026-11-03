@@ -43,12 +43,12 @@ The demo is organized in two panels: on the left, a visual representation of the
 
 *(Companion on step A or Overall Demo ready; no need to walk the full layer map.)*
 
-### 0:45–1:15 — Test A (`inference.local` / API key)
+### 0:45–1:15 — Test A (provider / API key)
 
 1. **Copy prompt** (key-audit — same as v1 / `demo-script.md`).
 2. **Play** in Control UI.
 
-**Expected:** no real key (`apiKey: unused` / empty env). The agent does not know which model it uses and does not hold the API key: it talks to `inference.local`; the gateway injects the credential.
+**Expected:** no real key in the sandbox. The agent does not hold the API key: it uses the baseUrl with a placeholder; the gateway injects the `maas-direct` provider credential.
 
 **Line:** “The key is injected at the gateway; the sandbox does not have it.”
 
@@ -98,7 +98,7 @@ While it generates: “Without Guardrails, the model can deliver the dangerous t
 3. **New session** in Control UI.
 4. Same prompt → **Play** → refuse / rail (“I can't respond” or equivalent).
 
-**Line:** “OpenClaw still calls `inference.local`; the backend changes. The guardrail cuts — not the harness.”
+**Line:** “OpenClaw still uses the same baseUrl; the provider switches to `maas-guardrailed`. The guardrail cuts — not the harness.”
 
 If the model drags on D-before: do not pad with theory; around ~3:50 on the clock, start Change 2 even if the script is unfinished (before/after still holds if before already produced code).
 

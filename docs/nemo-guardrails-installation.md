@@ -1,12 +1,13 @@
 # NeMo Guardrails Installation
 
-Deploy NeMo Guardrails on OpenShift via the TrustyAI `NemoGuardrails` CR ([ADR-0004](adr/0004-nemo-guardrails-via-trustyai.md)). OpenClaw continues calling `inference.local`; the OpenShell privacy router forwards to NeMo (when enabled), which applies input/output rails before calling MaaS.
+Deploy NeMo Guardrails on OpenShift via the TrustyAI `NemoGuardrails` CR ([ADR-0004](adr/0004-nemo-guardrails-via-trustyai.md)). OpenClaw keeps calling the active inference `baseUrl`; Change 2 re-attaches the OpenShell provider from `maas-direct` to `maas-guardrailed` so traffic hits NeMo, which applies input/output rails before calling MaaS.
 
 ## Architecture
 
 ```
-OpenClaw → inference.local → [maas-direct | maas-guardrailed] → MaaS
-                                    └─ guardrailed → NeMo Guardrails → MaaS
+OpenClaw → native baseUrl + provider inject → [maas-direct | maas-guardrailed]
+                                                    └─ guardrailed → NeMo Guardrails → MaaS
+                                                    └─ direct → MaaS
 ```
 
 For the live demo narrative, inference starts on **direct MaaS** (`INFERENCE_BACKEND=direct`). NeMo is deployed in backstage; the presenter runs `./scripts/demo-enable-guardrails.sh` for Change 2 (jailbreak blocked by self-check rails).

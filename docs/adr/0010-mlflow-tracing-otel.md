@@ -54,7 +54,10 @@ however, must be owned by the sandbox UID.
 
 ### Transport: OpenClaw → MLflow (in-cluster, direct)
 
-- Endpoint: `https://mlflow.redhat-ods-applications.svc:8443`
+- Endpoint: `https://mlflow.redhat-ods-applications.svc.cluster.local:8443/mlflow`
+  (MLflow 3.14 / RHOAI 3.5 Tracking API root; CR `status.address.url`.
+  OpenShell 0.1.6+ sandbox DNS returns ENOTFOUND for short `.svc` names —
+  use the cluster FQDN in policy + `trackingUri`.)
 - Auth: Bearer token via `MLFLOW_TRACKING_TOKEN` env var (read from Secret)
 - TLS: Combined CA bundle (OpenShell proxy CA + RHOAI service-ca)
 - Workspace header: Injected by patched `@mlflow/core` via `MLFLOW_WORKSPACE` env var
@@ -114,19 +117,19 @@ the project's "no scripts, no manual steps" goal:
 With both fixes, `make deploy-openshell` alone is now sufficient to wire up
 OpenClaw's MLflow tracing end-to-end — no manual `--set` flags needed.
 
-## Inference path (updated 2026-08-14)
+## Inference path (updated 2026-10-28)
 
-LLM calls from OpenClaw no longer reach MaaS directly from the sandbox. The
-agent uses OpenShell's **inference router** (`https://inference.local/v1`,
-`model: router` in `config/openclaw.json.tpl`). The real API key is registered
-only on the OpenShell gateway (`providers_v2` in `scripts/launch-openclaw.sh`);
-the sandbox process uses `apiKey: "unused"` and never sees the credential.
+OpenShell `0.1.6` removed managed `inference.local` routes. OpenClaw calls the
+native MaaS/NeMo `baseUrl` from `config/openclaw.json.tpl` with
+`apiKey: "${OPENAI_API_KEY}"`. The real credential is registered only on an
+OpenShell provider profile (`scripts/openshell-inference.sh`) and injected by
+the gateway for hosts declared on the profile attached to the sandbox
+(`maas-direct` / `maas-guardrailed`).
 
-This ADR covers **tracing only** — the inference router is an OpenShell gateway
+This ADR covers **tracing only** — provider attach is an OpenShell gateway
 concern, not part of the MLflow transport path. Traces still flow via the
-`mlflow-openclaw` plugin to `mlflow.redhat-ods-applications.svc:8443` as
-described above. MLflow trace metadata may show `model: router` rather than the
-resolved upstream model name — a known upstream gap, not a tracing regression.
+`mlflow-openclaw` plugin to `mlflow.redhat-ods-applications.svc.cluster.local:8443/mlflow` as
+described above.
 
 ## Consequences
 
@@ -136,6 +139,20 @@ resolved upstream model name — a known upstream gap, not a tracing regression.
 - Plugin requires patching on install (fragile to version upgrades)
 - Plugin install + patch requires `oc exec` (can't use sandbox restricted network)
 - Token rotation requires manual Secret deletion + helm upgrade
+
+## Validation
+
+- **2026-10-28 (RHOAI 3.5.2 / MLflow 3.14.0):** Cluster CR `status.address.url` is
+  `https://mlflow.redhat-ods-applications.svc:8443/mlflow`. Calls to
+  `/api/2.0/mlflow/...` (no `/mlflow` prefix) return Flask HTML 404; the same
+  paths under `/mlflow/api/2.0/...` succeed (get-or-create `openclaw-tracing`
+  in workspace `openshell`). Job + `ensure_mlflow_experiment` +
+  `trackingUri` / `validate-traces` updated accordingly.
+- **2026-11-02 (OpenShell 0.1.6 / OpenClaw 2026.10.8):** Sandbox DNS returns
+  `ENOTFOUND` for short `mlflow.redhat-ods-applications.svc`; FQDN
+  `.svc.cluster.local` connects (HTTP 200). Policy `mlflow_direct` + plugin
+  `trackingUri` switched to the FQDN. Also fixed `mlflow-openclaw` load under
+  OpenClaw plugin-captures (relative `.ts` import + package `main`/`exports`).
 
 ## References
 

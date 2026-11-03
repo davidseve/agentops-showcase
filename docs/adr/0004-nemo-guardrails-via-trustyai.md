@@ -53,8 +53,8 @@ Deploy NeMo Guardrails through the TrustyAI operator on OCP. This aligns with th
 
 | Component | Pinned version | Where enforced |
 |---|---|---|
-| TrustyAI operator | RHOAI 3.4 channel `stable-3.4` | `deploy/helm/operators/values.yaml` |
-| NeMo Guardrails | TrustyAI-managed (RHOAI 3.4 GA) | `deploy/helm/guardrails/` |
+| TrustyAI operator | RHOAI 3.5 channel `stable-3.5` (CSV `rhods-operator.3.5.2`) | `deploy/helm/operators/values.yaml` |
+| NeMo Guardrails | TrustyAI-managed (RHOAI 3.5 GA, NeMo 0.9.4) | `deploy/helm/guardrails/` |
 
 ## Demo Impact
 

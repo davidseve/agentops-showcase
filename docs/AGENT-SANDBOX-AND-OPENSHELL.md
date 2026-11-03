@@ -152,7 +152,7 @@ The `privileged` SCC is granted **only** to the `openshell-sandbox` ServiceAccou
 The Makefile target follows this sequence:
 
 1. **Wait for CRD** — polls until `sandboxes.agents.x-k8s.io` is available (installed by the Agent Sandbox Operator in step 0).
-2. **Resolve Helm dependency** — `helm dependency build` fetches the pinned upstream OCI chart (`0.0.83` per `Chart.lock`).
+2. **Resolve Helm dependency** — `helm dependency build` fetches the pinned upstream OCI chart (`0.1.6` per `Chart.lock`).
 3. **`helm upgrade --install`** — single release `openshell` in namespace `openshell` with chart `values.yaml` (SCC, TLS, SCC-compatible security context).
 4. **Namespace label** — `opendatahub.io/dashboard: "true"` so the namespace appears in the RHOAI Dashboard.
 5. **Wait for rollout** — StatefulSet + PKI secrets.
@@ -207,12 +207,16 @@ Deploys the OpenShell Gateway StatefulSet.  The wrapper chart (`deploy/helm/open
 ### Phase 3 — Sandbox Creation
 
 ```bash
-openshell sandbox create --from openclaw --name openclaw-gw --policy config/openshell/default.yaml
+openshell sandbox create \
+  --from docker.io/library/node:24.22-bookworm \
+  --name openclaw-gw \
+  --policy config/openshell/default.yaml \
+  --provider maas-direct
 ```
 
 The CLI sends a `CreateSandbox` gRPC request to the gateway.  The gateway's Kubernetes driver:
 
-1. **Resolves `--from openclaw`** into the container image `ghcr.io/nvidia/openshell-community/sandboxes/openclaw:latest` (see [image resolution](#how---from-resolves)).
+1. **Uses the explicit `--from` image** (OpenShell Community catalog is retired — bare names like `openclaw` are no longer expanded; see [image resolution](#how---from-resolves)).
 2. **Builds a `Sandbox` CR** spec with `podTemplate`, volumes, labels.
 3. **POSTs the CR** to the Kubernetes API:
 
@@ -232,7 +236,7 @@ spec:
       serviceAccountName: openshell-sandbox
       containers:
         - name: agent
-          image: ghcr.io/nvidia/openshell-community/sandboxes/openclaw:latest
+          image: docker.io/library/node:24.22-bookworm
           securityContext:
             runAsUser: 0           # supervisor needs root
             capabilities:
@@ -339,13 +343,13 @@ Ensures the local `openshell` CLI points at this cluster's gateway with valid mT
 
 ```bash
 openshell sandbox create \
-  --from openclaw \
+  --from docker.io/library/node:24.22-bookworm \
   --name openclaw-gw \
   --policy config/openshell/default.yaml \
-  --upload .rendered/openclaw.json:/sandbox/.openclaw/config.json
+  --provider maas-direct
 ```
 
-Creates the `Sandbox` CR → operator creates pod → supervisor starts → gateway reports `Ready`.  Idempotent: skipped if the sandbox already exists.
+Creates the `Sandbox` CR → operator creates pod → supervisor starts → gateway reports `Ready`.  Idempotent: skipped if the sandbox already exists. (`launch-openclaw.sh` stages config via `oc cp`, not `--upload` — see script comments.) Provider profiles are ensured by `scripts/openshell-inference.sh` before create.
 
 #### Step 1 — Clean Stale Gateway Processes via `openshell sandbox exec` (sandbox context)
 
@@ -369,7 +373,7 @@ These steps run **inside the container as root** to prepare the environment. The
 
 | Step | What it does | Why |
 |------|-------------|-----|
-| Install OpenClaw | `npm install -g openclaw@2026.6.34` | Pin to a tested version ([ADR-0006](adr/0006-explicit-version-pinning.md)) |
+| Install OpenClaw | `npm install -g openclaw@2026.10.8` (after Node ≥24.22.1 preflight) | Pin to a tested version ([ADR-0006](adr/0006-explicit-version-pinning.md)) |
 | Upload config | `oc cp openclaw.json` + `chown` to sandbox UID | OpenClaw rejects config not owned by the sandbox user |
 | Upload workspace bootstrap | `oc cp agent/workspace/{AGENTS,SOUL,IDENTITY}.md` → `/sandbox/workspace/` | Demo overrides default OpenClaw bootstrap that refuses sensitive probes; `skipBootstrap: true` in config |
 | Install MLflow plugin | `npm install @mlflow/mlflow-openclaw@0.2.0-rc.0` | Traces with full Request/Response content to RHOAI MLflow |
@@ -406,10 +410,11 @@ This is the critical switch from admin (`oc exec`) to **sandbox execution**:
 - Filesystem access is restricted by Landlock.
 - `nohup` + `&` keeps the process alive after the exec session ends.
 - `OTEL_*_EXPORTER=none` disables generic OTEL; tracing goes through the `mlflow-openclaw` plugin instead.
-- No `LITELLM_API_KEY` injection: LLM inference uses OpenShell's inference
-  router (`inference.local`). The real API key lives in the gateway's
-  provider record and is injected by the inference router at the gateway
-  layer — the sandbox process never sees it.
+- No raw MaaS key in sandbox env: OpenShell 0.1.6+ attaches a provider profile
+  (`maas-direct` / `maas-guardrailed` via `scripts/openshell-inference.sh`).
+  OpenClaw calls the native MaaS/NeMo `baseUrl` with `apiKey: "${OPENAI_API_KEY}"`;
+  the gateway injects the real credential only for hosts declared on the
+  attached profile.
 
 #### Step 10 — Health Check + Plugin Verification
 
@@ -452,50 +457,49 @@ All versions are pinned per [ADR-0006](adr/0006-explicit-version-pinning.md):
 
 | Component | Version | Where enforced |
 |-----------|---------|----------------|
+| RHOAI operator | channel `stable-3.5`, CSV `rhods-operator.3.5.2` | `deploy/helm/operators/values.yaml` |
 | Agent Sandbox Operator | channel `preview-0.9`, CSV `v0.9.0` | `deploy/helm/operators/values.yaml` |
-| OpenShell chart (gateway) | `0.0.83` | `deploy/helm/openshell/Chart.yaml` + `Chart.lock` |
-| OpenClaw (npm) | `2026.6.34` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
+| OpenShell chart (gateway) | `0.1.6` | `deploy/helm/openshell/Chart.yaml` + `Chart.lock` |
+| OpenClaw (npm) | `2026.10.8` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
 | `@mlflow/mlflow-openclaw` | `0.2.0-rc.0` | `scripts/launch-openclaw.sh` |
-| Sandbox base image | **not pinned** (`openclaw:latest`) | `--from openclaw` in `launch-openclaw.sh` |
+| Sandbox base image | `docker.io/library/node:24.22-bookworm` | `scripts/launch-openclaw.sh` (`OPENCLAW_SANDBOX_IMAGE`) |
 
 ### Pinning the Sandbox Base Image
 
-`--from openclaw` resolves to `ghcr.io/nvidia/openshell-community/sandboxes/openclaw:latest` via OpenShell's community image resolution (`openshell-core/src/image.rs`).  Any value containing `/`, `:`, or `.` is treated as a full image reference and passed through unchanged.
-
-To pin the base image, replace `--from openclaw` with a full reference:
+OpenShell Community is **retired**. Bare catalog names (`openclaw`, `base`, …) are no longer expanded by `openshell sandbox create --from` on OpenShell 0.1.x. This demo passes an explicit Node 24.22 image so `openclaw@2026.10.8` can install (engines require Node `>=24.22.1`; current `ubi9/nodejs-24` tags still ship `24.21.x`). Override with `OPENCLAW_SANDBOX_IMAGE`.
 
 ```bash
-# Tag pin
---from ghcr.io/nvidia/openshell-community/sandboxes/openclaw:0.0.83
+# Default (launch-openclaw.sh)
+--from docker.io/library/node:24.22-bookworm
 
 # Digest pin (maximum reproducibility)
---from ghcr.io/nvidia/openshell-community/sandboxes/openclaw@sha256:abc123...
+--from docker.io/library/node@sha256:...
 
 # Your own registry
---from quay.io/your-team/openclaw-sandbox:2026.6.34
+--from quay.io/your-team/openclaw-sandbox:2026.10.8
 ```
 
 If the sandbox already exists, it must be deleted and recreated to change the image:
 
 ```bash
 openshell sandbox delete openclaw-gw
-# then re-run launch-openclaw.sh with the new --from
+# then re-run launch-openclaw.sh (optionally with OPENCLAW_SANDBOX_IMAGE=...)
 ```
 
 ---
 
 ## 7. Using Your Own Agent Image
 
-The `--from openclaw` flag is a community preset — it simply resolves to a pre-built container image.  You can use any image or Dockerfile.
+Pass any OCI image or Dockerfile via `--from`. The OpenShell Community catalog is historical only.
 
 ### `--from` Resolution Rules
 
 | `--from` value | What happens |
 |----------------|-------------|
-| `openclaw`, `python`, `base` | Expanded to `ghcr.io/nvidia/openshell-community/sandboxes/{name}:latest` |
+| Bare community name (`openclaw`, `base`, …) | **No longer expanded** (catalog retired) — do not use |
 | `ghcr.io/myorg/myimage:v1` | Used as-is (contains `/` or `:`) |
 | `./Dockerfile` or `./docker/` | OpenShell builds the image, then creates the sandbox |
-| *(omitted)* | Uses the gateway default (`sandboxImage` in Helm values, typically `base:latest`) |
+| *(omitted)* | Uses the gateway default sandbox image from Helm values |
 
 ### Building a Custom Agent Sandbox
 
@@ -559,7 +563,7 @@ The sandbox policy controls what the agent can do at runtime:
 | `process` | User/group the agent runs as | `run_as_user: sandbox` |
 | `network_policies` | Allowed egress endpoints | Explicit host + port + protocol per policy |
 
-**Default deny:** any endpoint not listed in `network_policies` is blocked. LLM inference is handled by OpenShell's inference router (`inference.local`) — no explicit network policy needed.
+**Default deny:** any endpoint not listed in `network_policies` is blocked. LLM inference hosts come from the attached OpenShell provider profile (merged into the effective sandbox policy) — `config/openshell/default.yaml` only declares MLflow egress explicitly.
 
 | Policy file | Egress posture | Used by |
 |-------------|----------------|---------|
@@ -570,10 +574,10 @@ The sandbox policy controls what the agent can do at runtime:
 
 | Policy block | Binaries | Purpose |
 |--------------|----------|---------|
-| `mlflow_direct` | `/usr/bin/node` | OpenClaw gateway + `mlflow-openclaw` trace export |
+| `mlflow_direct` | `/usr/bin/node`, `/usr/local/bin/node` | OpenClaw gateway + `mlflow-openclaw` trace export to `mlflow.redhat-ods-applications.svc.cluster.local:8443` |
 | `demo_egress_google` (post–Change 1 only) | `/usr/bin/curl` | Test C — agent `curl` to `google.com` |
 
-`curl` is not listed under `mlflow_direct`; MLflow API validation from scripts uses `oc exec` outside the sandbox netns. `inference.local` needs no explicit binary allowlist.
+`curl` is not listed under `mlflow_direct`; MLflow API validation from scripts uses `oc exec` / cluster pods outside the sandbox netns. Inference binaries are declared on the provider profile (`/usr/bin/node`, `/usr/local/bin/node`). OpenShell 0.1.6+ does not resolve short `.svc` DNS inside the sandbox — MLflow host and OpenClaw `trackingUri` must use `.svc.cluster.local`.
 
 See [`demo-narrative-v1.md`](demo-narrative-v1.md) for the live narrative and [`scripts/demo-allow-google-egress.sh`](../scripts/demo-allow-google-egress.sh) / [`scripts/demo-reset.sh`](../scripts/demo-reset.sh) for on-stage policy toggles.
 
@@ -601,14 +605,14 @@ make -C deploy validate-demo-initial
 ### What `validate-security` Checks
 
 1. **Blocked endpoint:** `curl https://github.com` from inside the sandbox returns `000` (timeout) or `403` — proving the policy blocks it.
-2. **Inference router:** `curl https://inference.local/v1/models` returns `200` — proving the inference route is working.
+2. **Provider attach:** `openshell sandbox provider list openclaw-gw` shows the active profile (`maas-direct` or `maas-guardrailed`) — OpenShell 0.1.6+ no longer exposes `inference.local`.
 
 ### Infra vs Control UI validation
 
 | Layer | Command | What it proves |
 |-------|---------|----------------|
 | **Infrastructure (CI)** | `make -C deploy validate-security` | nftables/network policy blocks unauthorized egress (`curl` → `000`/`403`) |
-| **Demo backstage** | `make -C deploy validate-demo-initial` | `google.com` and `github.com` blocked before Change 1; `inference.local` still OK |
+| **Demo backstage** | `make -C deploy validate-demo-initial` | `google.com` and `github.com` blocked before Change 1; `maas-direct` attached |
 | **Control UI (E2E)** | `make -C deploy test-security` | User-facing agent refuses malicious prompts or shows block evidence in chat |
 | **Demo narrative (E2E)** | `make -C deploy test-demo` | Full live script: Tests A–D + Change 1/2 in one Control UI session |
 
