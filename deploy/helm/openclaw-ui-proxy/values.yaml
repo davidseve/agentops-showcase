@@ -4,9 +4,10 @@ appsDomain: ""
 # Namespace where OpenShell is deployed
 namespace: openshell
 
-# Sandbox name used in the public Control UI hostname
-# ({sandboxName}--openclaw-ui.<appsDomain>).
+# Sandbox name used in the public Control UI hostname.
+# OpenShell 0.1.6+ service Host is {workspace}--{sandboxName}--openclaw-ui.<appsDomain>.
 sandboxName: openclaw-gw
+openshellWorkspace: default
 
 # OpenShell gateway Service name (= Helm release name of deploy/helm/openshell).
 openshellServiceName: openshell

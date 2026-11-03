@@ -5,7 +5,8 @@
 {{- if not $openshellSvc }}
 {{- fail (printf "Service '%s' not found in namespace '%s' (set openshellServiceName to the OpenShell Helm release name)" $svcName .Values.namespace) }}
 {{- end }}
-{{- $uiHost := printf "%s--openclaw-ui.%s" .Values.sandboxName .Values.appsDomain }}
+{{- $workspace := .Values.openshellWorkspace | default "default" }}
+{{- $uiHost := printf "%s--%s--openclaw-ui.%s" $workspace .Values.sandboxName .Values.appsDomain }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -51,10 +52,17 @@ data:
 
           # OpenShell service routing keys off Host: {sandbox}--{service}.{domain}
           proxy_set_header Host {{ $uiHost }};
+          # OpenClaw 2026.10+ ingress attribution: OpenShell relay connects as
+          # 127.0.0.1 (gateway.trustedProxies = loopback only). Overwrite XFF to
+          # the OpenShift router client ($remote_addr). Do NOT list private CIDRs
+          # in trustedProxies — OpenClaw peels trusted hops from XFF and then
+          # rejects when the only remaining hop is also trusted (403
+          # proxy_attribution_required).
           proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-For $remote_addr;
           proxy_set_header X-Forwarded-Proto https;
           proxy_set_header X-Forwarded-Host {{ $uiHost }};
+          proxy_set_header Forwarded "";
 
           proxy_http_version 1.1;
           proxy_set_header Upgrade $http_upgrade;

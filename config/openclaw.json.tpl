@@ -69,9 +69,12 @@
     "controlUi": {
       "allowedOrigins": [
         "https://__UI_HOST__"
-      ],
-      "dangerouslyDisableDeviceAuth": true
+      ]
     },
+    "trustedProxies": [
+      "127.0.0.1/32",
+      "::1/128"
+    ],
     "reload": {
       "mode": "off"
     },
