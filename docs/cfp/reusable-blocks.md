@@ -25,14 +25,30 @@ Production AgentOps on RHOAI: Sandbox, Zero-Trust Credentials, and Full Traceabi
 ```
 
 ```
-Bring Your Own Agent — Run It Safely on OpenShift AI
+Bring Your Own Agent: Run It Safely on OpenShift AI
 ```
 
-**MWC Barcelona 2027 (AI in Action — joint + demo):** see [`submissions/mwc27-ai-in-action.md`](submissions/mwc27-ai-in-action.md)
+**MWC Barcelona 2027 (AI in Action, joint + demo):** see [`submissions/mwc27-ai-in-action.md`](submissions/mwc27-ai-in-action.md)
 
 ```
 When the Agent Can Touch the Network: Hardening Agentic Ops Live
 ```
+
+**Lab (Summit-style, sentence case):**
+
+```
+AgentOps: secure bring-your-own-agent on Red Hat OpenShift AI
+```
+
+Lab hook (audience, then hands-on, then task bullets, then outcome and who it is for):
+
+```
+Do you already know the basics of Red Hat OpenShift AI and want the controls security teams require before an agent reaches production? Then this lab is for you.
+
+This lab offers a hands-on introduction to AgentOps on Red Hat OpenShift AI: the controls for running a bring-your-own-agent workload in production.
+```
+
+Full lab abstract: [`submissions/rhs-2027-agentops-lab.md`](submissions/rhs-2027-agentops-lab.md).
 
 ## One-line problem statement
 
@@ -62,7 +78,7 @@ Business value: unlocks agentic AI adoption by solving security, credential isol
 For **Comments** or session outline:
 
 ```
-Live interactive demo: Four scripted security scenarios — credential exfiltration attempt, filesystem access (/etc/shadow), selective egress opening, and NeMo Guardrails blocking prompt injection — with real-time sandbox blocking and MLflow trace visibility.
+Live interactive demo: Four scripted security scenarios: credential exfiltration attempt, filesystem access (/etc/shadow), selective egress opening, and NeMo Guardrails blocking prompt injection: with real-time sandbox blocking and MLflow trace visibility.
 ```
 
 | Scenario | Story | Platform proof |
@@ -100,7 +116,7 @@ Multi-platform alignment: Red Hat OpenShift, RHOAI 3.x (MLflow, TrustyAI, MaaS),
 | Field | Recommendation |
 |-------|----------------|
 | Format | Presentation/Demonstration |
-| Duration | 60 min (50 + 10 break) — core demo ~10 min + architecture + Q&A |
+| Duration | 60 min (50 + 10 break): core demo ~10 min + architecture + Q&A |
 | Categories | Product and Solutions Focus; Experience Reports |
 | Audience | Specialist |
 | Level | Intermediate |
