@@ -15,6 +15,8 @@ spec:
         managementState: {{ .Values.datasciencecluster.components.kserve.wva.managementState }}
     llamastackoperator:
       managementState: {{ .Values.datasciencecluster.components.llamastackoperator.managementState }}
+    ogx:
+      managementState: {{ .Values.datasciencecluster.components.ogx.managementState }}
     aipipelines:
       managementState: {{ .Values.datasciencecluster.components.aipipelines.managementState }}
     feastoperator:

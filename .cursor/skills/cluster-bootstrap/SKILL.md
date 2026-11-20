@@ -45,7 +45,7 @@ for the happy path — the Makefile handles synchronization.
 | 1b | (inside `deploy-platform`) | Dashboard CRD / adopt-dashboard-config (after DSC enables Dashboard) |
 | 2 | `deploy-database` | — |
 | 3 | `wait-mlflow-crd` → `deploy-mlflow` | `mlflows.mlflow.opendatahub.io` CRD |
-| 4 | `wait-evalhub-crd` → `deploy-evalhub` | `evalhubs.trustyai.opendatahub.io` CRD |
+| 4 | `wait-evalhub-crd` → `wait-trustyai-webhook` → `deploy-evalhub` | EvalHub CRD + TrustyAI conversion webhook endpoints |
 
 These waits are **required** for a reliable install. Without them, Helm fails with
 missing CRDs or unprocessed finalizers. The skill does not duplicate this logic —
@@ -105,7 +105,7 @@ for `make validate`.
 | EvalHub | Ready |
 
 `modelsAsService` stays **Removed** in the DataScienceCluster — this demo routes LLM
-inference through external MaaS via OpenShell (`inference.local`), not RHOAI's native
+inference through external MaaS via OpenShell provider profiles (`maas-direct` / `maas-guardrailed`), not RHOAI's native
 MaaS gateway. `make validate` requires DataScienceCluster phase **Ready**; if it fails,
 wait 60s and re-run (components may still be reconciling).
 
@@ -153,7 +153,7 @@ cd deploy
 make deploy-platform    # includes wait-operators
 make deploy-database
 make deploy-mlflow      # includes wait-mlflow-crd
-make deploy-evalhub     # includes wait-evalhub-crd
+make deploy-evalhub     # includes wait-evalhub-crd + wait-trustyai-webhook
 make validate
 ```
 
