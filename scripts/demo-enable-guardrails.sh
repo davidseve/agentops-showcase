@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# demo-enable-guardrails.sh — Live demo Change 2: route inference.local via NeMo Guardrails.
+# demo-enable-guardrails.sh — Live demo Change 2: switch OpenClaw to NeMo Guardrails.
+#
+# OpenShell 0.1.6+: detach MaaS provider, attach NeMo provider, point OpenClaw
+# baseUrl at NeMo, restart gateway. (Managed inference.local routes are gone.)
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "${SCRIPT_DIR}/common.sh"
+# shellcheck source=openshell-inference.sh
+source "${SCRIPT_DIR}/openshell-inference.sh"
 
 load_inference_config || exit 1
 command -v openshell >/dev/null 2>&1 || { error "openshell CLI is required"; exit 1; }
@@ -19,5 +24,5 @@ if ! openshell provider list 2>/dev/null | grep -q "${PROVIDER_GUARDRAILED}"; th
   exit 1
 fi
 
-openshell inference set --provider "${PROVIDER_GUARDRAILED}" --model "${INFERENCE_MODEL}" --no-verify
-pass "Inference route: ${PROVIDER_GUARDRAILED} / ${INFERENCE_MODEL} (NeMo Guardrails active)"
+switch_openshell_inference guardrailed
+pass "Inference path: ${PROVIDER_GUARDRAILED} / ${INFERENCE_MODEL} (NeMo Guardrails active)"

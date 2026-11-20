@@ -11,9 +11,14 @@ data:
     models:
       - type: main
         engine: openai
+        model: {{ .Values.guardrails.modelName | quote }}
+        # Without api_key_env_var, NeMo sets api_key=runtime-provided and
+        # expects X-Authorization forwarding; MaaS then returns 401.
+        api_key_env_var: OPENAI_API_KEY
         parameters:
-          openai_api_base: {{ .Values.guardrails.maasBaseUrl | quote }}
-          model_name: {{ .Values.guardrails.modelName | quote }}
+          # NeMo Guardrails default LLM framework rejects 0.21-style
+          # openai_api_base; use base_url (OpenAI-compatible).
+          base_url: {{ .Values.guardrails.maasBaseUrl | quote }}
     rails:
       input:
         flows:

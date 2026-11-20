@@ -17,10 +17,15 @@ info "Policy: $(basename "$POLICY_DEFAULT")"
 
 "${SCRIPT_DIR}/demo-disable-guardrails.sh"
 
+# Reset has no egress probe; keep OpenShell --wait so Landlock/network settle
+# before the next rehearsal (Change 1 uses curl as its readiness signal instead).
 openshell policy set "${SANDBOX_NAME}" --policy "$POLICY_DEFAULT" --wait
 
 step "Cleaning sandbox workspace artifacts"
-KEEP_PATTERN='^\.(openclaw|combined-ca-bundle)|^AGENTS\.md$|^IDENTITY\.md$|^SOUL\.md$|^openclaw\.log$'
+# Keep .npm-global — OpenClaw CLI + device approve live there. Deleting it
+# (observed 2026-11-02) leaves the gateway process up but breaks
+# openclaw-approve-pending-devices.sh / Playwright Control UI pairing.
+KEEP_PATTERN='^\.(openclaw|npm-global|combined-ca-bundle)|^AGENTS\.md$|^IDENTITY\.md$|^SOUL\.md$|^openclaw\.log$'
 STALE=$(openshell sandbox exec -n "${SANDBOX_NAME}" --no-tty -- \
   bash -c "ls -A /sandbox/workspace/ 2>/dev/null" | grep -Ev "$KEEP_PATTERN" || true)
 if [[ -n "$STALE" ]]; then

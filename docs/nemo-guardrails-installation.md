@@ -1,12 +1,13 @@
 # NeMo Guardrails Installation
 
-Deploy NeMo Guardrails on OpenShift via the TrustyAI `NemoGuardrails` CR ([ADR-0004](adr/0004-nemo-guardrails-via-trustyai.md)). OpenClaw continues calling `inference.local`; the OpenShell privacy router forwards to NeMo (when enabled), which applies input/output rails before calling MaaS.
+Deploy NeMo Guardrails on OpenShift via the TrustyAI `NemoGuardrails` CR ([ADR-0004](adr/0004-nemo-guardrails-via-trustyai.md)). OpenClaw keeps calling the active inference `baseUrl`; Change 2 re-attaches the OpenShell provider from `maas-direct` to `maas-guardrailed` so traffic hits NeMo, which applies input/output rails before calling MaaS.
 
 ## Architecture
 
 ```
-OpenClaw → inference.local → [maas-direct | maas-guardrailed] → MaaS
-                                    └─ guardrailed → NeMo Guardrails → MaaS
+OpenClaw → native baseUrl + provider inject → [maas-direct | maas-guardrailed]
+                                                    └─ guardrailed → NeMo Guardrails → MaaS
+                                                    └─ direct → MaaS
 ```
 
 For the live demo narrative, inference starts on **direct MaaS** (`INFERENCE_BACKEND=direct`). NeMo is deployed in backstage; the presenter runs `./scripts/demo-enable-guardrails.sh` for Change 2 (jailbreak blocked by self-check rails).
@@ -32,7 +33,7 @@ All inference-related variables are read from `secrets/secrets.env` via `scripts
 | Variable | Default | Purpose |
 |---|---|---|
 | `INFERENCE_MODEL` | `claude-sonnet-4-6` | OpenShell inference route + NeMo `model_name` |
-| `MAAS_BASE_URL` | MaaS workshops URL | Direct provider + NeMo upstream `openai_api_base` |
+| `MAAS_BASE_URL` | MaaS workshops URL | Direct provider + NeMo upstream `base_url` |
 | `INFERENCE_BACKEND` | `direct` | Active provider at launch (`direct` or `guardrailed`) |
 | `NEMO_GUARDRAILS_SERVICE` | `nemo-guardrails` | CR / Service name |
 | `NEMO_GUARDRAILS_NAMESPACE` | `openshell` | Namespace for NeMo CR |
@@ -89,7 +90,11 @@ Rails config lives in [`deploy/helm/guardrails/files/`](../deploy/helm/guardrail
 - `prompts.yml` — Red Hat RHOAI 3.4 self-check prompts (jailbreak / moderation)
 - `rails.co` — built-in self-check flows
 
-`config.yaml` is rendered by Helm (`model_name`, `openai_api_base`, rail flows from `values.yaml`). Helm chart: [`deploy/helm/guardrails/`](../deploy/helm/guardrails/).
+`config.yaml` is rendered by Helm (`model`, `base_url`, `api_key_env_var: OPENAI_API_KEY`, rail flows from `values.yaml`). Helm chart: [`deploy/helm/guardrails/`](../deploy/helm/guardrails/).
+
+Validated against current TrustyAI NeMo image behavior:
+- Use `base_url` (not legacy `openai_api_base`); otherwise NeMo fails with `Could not load the ['agentops-config'] guardrails configuration`.
+- Set `api_key_env_var: OPENAI_API_KEY` so upstream MaaS calls use the pod secret. Without it, NeMo sends the `runtime-provided` sentinel and MaaS returns `401 LiteLLM Virtual Key expected`.
 
 ## Teardown
 
@@ -108,6 +113,8 @@ Also runs as part of `make -C deploy undeploy-openshell`.
 | Provider not found at demo | Skipped `launch-openclaw` | `make -C deploy launch-openclaw` |
 | Jailbreak not blocked | Still on `maas-direct` | `./scripts/demo-enable-guardrails.sh` |
 | Chat shows "Internal server error" on jailbreak | OpenClaw streams responses; output rails need `rails.output.streaming.enabled: true` | Redeploy guardrails (chart sets this); run `make -C deploy test-guardrails` as regression; see [NeMo output rail streaming](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/yaml-schema/streaming/output-rail-streaming) |
+| Control UI / Change 2 returns 422 about `tools` / `tool_choice` | NeMo only allows those fields for non-streaming requests with `passthrough: true`; OpenClaw streams and sends tools | `demo-enable-guardrails` / `openshell-inference.sh switch guardrailed` sets `compat.supportsTools: false` on the OpenClaw model so tools are omitted on the NeMo path; direct MaaS restores tools |
+| Control UI empty reply / `EACCES` after Change 2 | Gateway `/health` is live before agent admission; OpenClaw SSRF blocks OpenShell fake-IP (198.18/16) for cluster NeMo DNS unless opted in | `openshell-inference.sh` waits for `sessions.list` after restart and sets `models.providers.inference.request.allowPrivateNetwork: true`; demo narrative Change 2 also runs `validate-openclaw-session.sh` before reconnect |
 | `validate-guardrails` appears hung | Wrong Service port (`8000` vs TrustyAI `80`), or `oc run -i` after curl timeout | Set `NEMO_GUARDRAILS_PORT=80`; redeploy guardrails; allow ~3 min for self-check rails |
 | Model mismatch errors | `INFERENCE_MODEL` differs from MaaS catalog | Set same model in `secrets.env` and redeploy guardrails |
 
