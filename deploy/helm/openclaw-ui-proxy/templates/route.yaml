@@ -1,6 +1,7 @@
 # Browser Route for the OpenClaw Control UI.
-# Host matches OpenShell's {sandbox}--{service} routing pattern.
+# Host matches OpenShell 0.1.6+ {workspace}--{sandbox}--{service} routing.
 # TLS: reencrypt (nginx terminates with service-CA cert; router uses cluster cert at the edge).
+{{- $workspace := .Values.openshellWorkspace | default "default" }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -9,7 +10,7 @@ metadata:
   annotations:
     haproxy.router.openshift.io/timeout: 3600s
 spec:
-  host: {{ .Values.sandboxName }}--openclaw-ui.{{ .Values.appsDomain }}
+  host: {{ $workspace }}--{{ .Values.sandboxName }}--openclaw-ui.{{ .Values.appsDomain }}
   to:
     kind: Service
     name: openclaw-ui-proxy

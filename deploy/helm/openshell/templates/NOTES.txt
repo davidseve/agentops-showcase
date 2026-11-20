@@ -3,8 +3,9 @@ OpenShell gateway deployed for the AgentOps demo.
 This is a single Helm release ({{ .Release.Name }}, namespace {{ .Release.Namespace }})
 that renders both this wrapper's OpenShift extras (privileged SCC RoleBinding, Route)
 and the upstream OpenShell gateway itself (subchart dependency, image tag
-{{ .Values.openshell.image.tag }}) together — see deploy/Makefile's `deploy-openshell`
-target and Chart.yaml's `dependencies:` block for the pinned upstream version.
+{{ .Values.openshell.global.image.tag | default .Chart.AppVersion }}) together — see
+deploy/Makefile's `deploy-openshell` target and Chart.yaml's `dependencies:` block
+for the pinned upstream version.
 {{- if .Values.openshift.scc.privilegedSandbox }}
 SCC:       privileged → {{ include "agentops-openshell.sandboxSA" . }} (namespace {{ .Release.Namespace }})
 {{- end }}

@@ -15,14 +15,17 @@
 # dependency the same day once the correct OCI `repository:` path was found
 # (it must be the *parent* of the chart, e.g. `oci://ghcr.io/nvidia/openshell`,
 # not `.../helm-chart` — Helm appends `name` itself when resolving OCI refs).
+#
+# 2026-10-28: bumped upstream dependency 0.0.83 → 0.1.6. Values schema changed
+# (global.image / gateway.image / sandboxRuntime; no server.sandboxImage).
 apiVersion: v2
 name: agentops-openshell
 description: OpenShell gateway for the AgentOps demo on OpenShift / RHOAI
 type: application
-version: 0.3.0
-appVersion: "0.0.83"
+version: 0.4.0
+appVersion: "0.1.6"
 dependencies:
   - name: helm-chart
     alias: openshell
-    version: "0.0.83"
+    version: "0.1.6"
     repository: "oci://ghcr.io/nvidia/openshell"

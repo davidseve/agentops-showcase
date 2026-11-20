@@ -60,7 +60,7 @@ Sandbox Operator (OLM, sole source — ADR-0003 / OSC 1.13) → `helm dependency
 (resolves the pinned OCI chart per `Chart.lock`) →
 one `helm upgrade --install openshell deploy/helm/openshell --namespace openshell
 --create-namespace` (namespace extras + the actual gateway
-StatefulSet together, pinned `0.0.83` in `Chart.yaml`) → `oc label namespace` (RHOAI
+StatefulSet together, pinned `0.1.6` in `Chart.yaml`) → `oc label namespace` (RHOAI
 Dashboard opt-in) → wait for rollout/PKI secrets → MLflow RBAC wiring
 (`deploy-mlflow-openclaw-integration`, which also runs `ensure-mlflow-experiment`
 for the `openclaw-tracing` workspace experiment) → **CLI gateway register + mTLS**
@@ -114,7 +114,7 @@ make -C deploy openshell-register-gateway   # GATEWAY_NAME=ocp by default
 | Setting | Value |
 |---|---|
 | Wrapper chart | `deploy/helm/openshell/` (`0.3.0`) |
-| Upstream OCI chart (real Helm dependency, alias `openshell`) | `oci://ghcr.io/nvidia/openshell` chart `helm-chart`, `0.0.83` — pinned in `Chart.yaml`'s `dependencies[].version` + committed `Chart.lock`, **not** a Makefile variable |
+| Upstream OCI chart (real Helm dependency, alias `openshell`) | `oci://ghcr.io/nvidia/openshell` chart `helm-chart`, `0.1.6` — pinned in `Chart.yaml`'s `dependencies[].version` + committed `Chart.lock`, **not** a Makefile variable |
 | UI proxy chart | `deploy/helm/openclaw-ui-proxy/` (`0.1.0`) — nginx sole entrypoint |
 | `server.disableTls` | `false` |
 | `pkiInitJob.enabled` | `true` (default — do not disable) |

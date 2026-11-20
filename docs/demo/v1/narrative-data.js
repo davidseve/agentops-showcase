@@ -146,7 +146,7 @@ network_policies:
   mlflow_direct:
     name: rhoai-mlflow-direct-traces
     endpoints:
-      - host: "mlflow.redhat-ods-applications.svc"
+      - host: "mlflow.redhat-ods-applications.svc.cluster.local"
         port: 8443
         protocol: rest
         enforcement: enforce

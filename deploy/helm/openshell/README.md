@@ -1,10 +1,10 @@
 # agentops-openshell
 
-Wrapper Helm chart (`0.3.0`) that deploys
-[NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) on OpenShift / RHOAI for the
-AgentOps demo as a **single Helm release**: the OpenShift-side pieces (a privileged SCC
-`RoleBinding` for the sandbox ServiceAccount, and a `Route` for gRPC/CLI access) plus the
-upstream gateway itself, rendered together.
+Wrapper Helm chart (`0.4.0`) that deploys
+[NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) (`helm-chart` **0.1.6**) on
+OpenShift / RHOAI for the AgentOps demo as a **single Helm release**: the OpenShift-side
+pieces (a privileged SCC `RoleBinding` for the sandbox ServiceAccount, and a `Route` for
+gRPC/CLI access) plus the upstream gateway itself, rendered together.
 
 **This chart has a real Helm `dependencies:` entry** on the upstream OCI chart
 (`oci://ghcr.io/nvidia/openshell`, chart `helm-chart`, aliased `openshell` — see

@@ -27,7 +27,9 @@ spec:
             - |
               set -e
               TOKEN=$(cat /var/run/secrets/mlflow-token/token)
-              MLFLOW_URL="https://mlflow.{{ .Values.openclawIntegration.mlflowNamespace }}.svc:8443"
+              # MLflow 3.14 (RHOAI 3.5) serves the Tracking API under /mlflow
+              # (status.address.url ends with /mlflow). Bare /api/2.0 returns HTML 404.
+              MLFLOW_URL="https://mlflow.{{ .Values.openclawIntegration.mlflowNamespace }}.svc:8443/mlflow"
               WORKSPACE="{{ .Values.openclawIntegration.namespace }}"
               EXP_NAME="{{ .Values.openclawIntegration.experimentName }}"
 
