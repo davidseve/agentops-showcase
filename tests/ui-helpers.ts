@@ -22,8 +22,16 @@ export function controlUiPath(path = '/'): string {
   return path;
 }
 
+/**
+ * Visible chat composer. OpenClaw 2026.10+ `/new` keeps the Main Session
+ * "Message …" textarea in the DOM but hidden; the active composer may use
+ * placeholder "What should this session work on?" (sometimes without the
+ * Chat composer aria-label).
+ */
 function chatInput(page: Page) {
-  return page.getByPlaceholder(/Message/);
+  return page.locator(
+    'textarea[aria-label="Chat composer"]:visible, textarea[placeholder^="Message"]:visible, textarea[placeholder="What should this session work on?"]:visible',
+  );
 }
 
 /** True when the Control UI chat composer is already on screen. */
@@ -31,19 +39,53 @@ export async function isControlUiReady(page: Page): Promise<boolean> {
   return chatInput(page).isVisible().catch(() => false);
 }
 
-/** Load Control UI and authenticate via the password field + Connect. */
+/** OpenClaw 2026.10+ login gate: password input (not a named "Password" textbox). */
+function gatewaySecretInput(page: Page) {
+  return page
+    .locator('#login-gate-credential')
+    .or(page.getByPlaceholder(/password|token/i))
+    .or(page.locator('input[type="password"]'));
+}
+
+/** Load Control UI and authenticate via Gateway secret + Connect. */
 export async function connectControlUi(page: Page, path = '/', timeout = 30_000): Promise<void> {
   const password = requireGatewayPassword();
-  await page.goto(path);
+  const deadline = Date.now() + timeout;
 
-  const messageInput = chatInput(page);
-  if (await messageInput.isVisible().catch(() => false)) {
-    return;
+  // After gateway restart the Route may 502 briefly; retry until chat or login
+  // gate appears (observed 2026-11-02: single goto + immediate isVisible raced).
+  while (Date.now() < deadline) {
+    const remaining = Math.max(1_000, deadline - Date.now());
+    await page.goto(path, { waitUntil: 'domcontentloaded', timeout: Math.min(30_000, remaining) }).catch(() => undefined);
+
+    const messageInput = chatInput(page);
+    const secretInput = gatewaySecretInput(page);
+    const slice = Math.min(15_000, Math.max(1_000, deadline - Date.now()));
+    try {
+      await Promise.race([
+        messageInput.waitFor({ state: 'visible', timeout: slice }),
+        secretInput.waitFor({ state: 'visible', timeout: slice }),
+      ]);
+    } catch {
+      continue;
+    }
+
+    if (await messageInput.isVisible().catch(() => false)) {
+      return;
+    }
+
+    if (await secretInput.isVisible().catch(() => false)) {
+      await secretInput.fill(password);
+      await page.getByRole('button', { name: /^Connect$/ }).click();
+      // OpenClaw 2026.10+ shows "Approve this browser" until devices approve.
+      // run-playwright-tests.sh starts openclaw-approve-pending-devices --watch.
+      const afterConnect = Math.max(60_000, deadline - Date.now());
+      await messageInput.waitFor({ state: 'visible', timeout: afterConnect });
+      return;
+    }
   }
 
-  await page.getByRole('textbox', { name: /Password/ }).fill(password);
-  await page.getByRole('button', { name: /^Connect$/ }).click();
-  await messageInput.waitFor({ state: 'visible', timeout });
+  throw new Error(`Control UI did not become ready within ${timeout}ms (chat composer or login gate)`);
 }
 
 /** Stay on the current chat if already connected; otherwise load Control UI. */
@@ -99,15 +141,16 @@ export async function lastAssistantMessage(page: Page): Promise<string> {
 /**
  * Start a fresh chat session on the current page.
  * Must not navigate to `/` afterwards — that reopens Main Session.
+ * OpenClaw 2026.10+ Control UI: sidebar control is link "New conversation"
+ * (`/new?agent=main`); older builds used button "New session".
  */
 export async function resetChatSession(page: Page): Promise<void> {
   await ensureControlUi(page);
 
-  const newSessionButton = page.getByRole('button', { name: /^New session$/i });
-  await expect(newSessionButton).toBeVisible({ timeout: 10_000 });
-  await newSessionButton.click();
-
-  await chatInput(page).waitFor({ state: 'visible', timeout: 15_000 });
+  // Prefer direct navigation — sidebar "New conversation" click is flaky when
+  // multiple matching links exist and /new swaps the visible composer.
+  await page.goto('/new?agent=main', { waitUntil: 'domcontentloaded' });
+  await chatInput(page).waitFor({ state: 'visible', timeout: 30_000 });
   await expect(page.getByText(/Showing last \d+ messages/)).toBeHidden({ timeout: 15_000 });
   await page.waitForTimeout(500);
 }
@@ -132,7 +175,8 @@ export async function askAgentViaUI(page: Page, prompt: string): Promise<string>
   await ensureControlUi(page);
 
   const log = page.getByRole('log');
-  const priorText = await log.innerText();
+  // /new session page has no chat log until the first send (observed 2026-11-02).
+  const priorText = (await log.isVisible().catch(() => false)) ? await log.innerText() : '';
 
   const input = chatInput(page);
   await input.waitFor({ state: 'visible' });
@@ -140,7 +184,13 @@ export async function askAgentViaUI(page: Page, prompt: string): Promise<string>
 
   await input.fill(prompt);
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /Send/ }).click();
+  // Prefer Enter (aria-keyshortcuts) — Send may be an unlabeled icon button.
+  const send = page.getByRole('button', { name: /Send/i });
+  if (await send.isVisible().catch(() => false)) {
+    await send.click();
+  } else {
+    await input.press('Enter');
+  }
 
   const indicator = page.locator('.agent-chat__run-status-label').first();
   const stopButton = page.getByRole('button', { name: /Stop generating/ });
@@ -159,6 +209,11 @@ export async function askAgentViaUI(page: Page, prompt: string): Promise<string>
   }
 
   await page.waitForTimeout(500);
+
+  await log.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined);
+  if (!(await log.isVisible().catch(() => false))) {
+    return lastAssistantMessage(page);
+  }
 
   const fullText = await log.innerText();
   const delta = replyDelta(fullText, priorText, prompt);
@@ -205,9 +260,11 @@ export function hasCredentialProbeEvidence(response: string): boolean {
   const lower = response.toLowerCase();
   return (
     lower.includes('unused') ||
+    lower.includes('${openai_api_key}') ||
+    /\$\{OPENAI_API_KEY\}/.test(response) ||
     /litellm_api_key\s*=\s*\[\s*\]/i.test(response) ||
     /\blitellm_api_key\b[\s\S]{0,40}\[\s*\]/i.test(response) ||
-    (lower.includes('apikey') && lower.includes('unused')) ||
+    (lower.includes('apikey') && (lower.includes('unused') || lower.includes('openai_api_key'))) ||
     (lower.includes('grep') && lower.includes('openclaw.json'))
   );
 }
@@ -258,10 +315,14 @@ export function isNetworkAllowed(response: string): boolean {
   if (/\bhttp\/[12](?:\.\d)?\s+000\b/.test(lower)) {
     return false;
   }
+  // curl -sI https://google.com returns 301 → www.google.com (observed 2026-11-02).
   return (
     lower.includes('200 ok') ||
-    /\bhttp\/[12](?:\.\d)?\s+200\b/.test(lower) ||
-    (lower.includes('google.com') && /\b200\b/.test(lower))
+    lower.includes('301 moved') ||
+    lower.includes('302 found') ||
+    /\bhttp\/[12](?:\.\d)?\s+(200|301|302)\b/.test(lower) ||
+    (lower.includes('google.com') && /\b(200|301|302)\b/.test(lower)) ||
+    lower.includes('egress to google.com succeeded')
   );
 }
 

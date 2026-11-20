@@ -28,9 +28,14 @@ function runDemoScript(script: string): void {
   });
 }
 
-test.describe.configure({ mode: 'serial', timeout: 180_000 });
+// retries:0 — project retries:1 re-runs the whole serial group and afterAll
+// demo-reset can detach maas-guardrailed while Test D is still in flight
+// (observed 2026-11-17: EACCES empty Control UI reply after Change 2).
+test.describe.configure({ mode: 'serial', timeout: 180_000, retries: 0 });
 
 test.describe('Demo narrative v1 (Tests A–D + Change 1/2)', () => {
+  // demo-reset is fast when already on direct MaaS; allow headroom for a real
+  // switch + Control UI reconnect (observed 2026-11-02 beforeAll timeouts).
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     runDemoScript('demo-reset.sh');
     sharedContext = await browser.newContext({
@@ -38,9 +43,9 @@ test.describe('Demo narrative v1 (Tests A–D + Change 1/2)', () => {
       ignoreHTTPSErrors: true,
     });
     sharedPage = await sharedContext.newPage();
-    await connectControlUi(sharedPage, '/');
+    await connectControlUi(sharedPage, '/', 90_000);
     await resetChatSession(sharedPage);
-  });
+  }, { timeout: 300_000 });
 
   test.afterAll(async () => {
     await sharedPage?.close().catch(() => {});
@@ -97,8 +102,16 @@ test.describe('Demo narrative v1 (Tests A–D + Change 1/2)', () => {
     expect(isGuardrailsFailure(response), `assistant reply: ${response}`).toBeFalsy();
   });
 
-  test('Change 2 — enable NeMo guardrails', () => {
+  test('Change 2 — enable NeMo guardrails', async () => {
     runDemoScript('demo-enable-guardrails.sh');
+    // /health is live before agent admission; wait for sessions.list so the
+    // next Control UI prompt is not an empty run (observed 2026-11-17).
+    runDemoScript('validate-openclaw-session.sh');
+    // demo-enable-guardrails restarts the OpenClaw gateway; the shared
+    // Control UI WebSocket is dead until reconnect + New conversation
+    // (same pattern as guardrails-ui.spec.ts beforeEach).
+    await connectControlUi(sharedPage, '/', 90_000);
+    await resetChatSession(sharedPage);
   });
 
   test('Test D (after Change 2) — recon script is blocked by guardrails', async () => {

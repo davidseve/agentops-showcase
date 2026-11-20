@@ -96,10 +96,11 @@ run_preflight() {
 
   detect_apps_domain || return 1
 
-  if oc -n "$NAMESPACE" get pod "$SANDBOX_NAME" >/dev/null 2>&1; then
-    pass "sandbox pod ${SANDBOX_NAME}"
+  local sandbox_pod
+  if sandbox_pod="$(resolve_sandbox_pod "$NAMESPACE" "$SANDBOX_NAME")"; then
+    pass "sandbox pod ${sandbox_pod}"
   else
-    fail "sandbox pod ${SANDBOX_NAME} not found in namespace ${NAMESPACE}"
+    fail "sandbox pod for ${SANDBOX_NAME} not found in namespace ${NAMESPACE} (expected default--${SANDBOX_NAME})"
     return 1
   fi
 
@@ -179,6 +180,12 @@ start_servers() {
     cd "${DOCS_DIR}"
     python3 -m http.server "${HTTP_PORT}"
   ) &
+  PIDS+=("$!")
+
+  # OpenClaw 2026.10+ requires Control UI device pairing (legacy disable flag retired).
+  # Auto-approve pending browsers while the presenter panel is up.
+  echo "==> Auto-approving pending Control UI device pairing"
+  "${SCRIPT_DIR}/openclaw-approve-pending-devices.sh" --watch >/dev/null &
   PIDS+=("$!")
 
   step "Waiting for observability proxy"
