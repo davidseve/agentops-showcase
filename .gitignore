@@ -64,3 +64,6 @@ tests/playwright-report/
 
 # Local scratch (e.g. downloaded demo recordings for analysis)
 .tmp/
+
+# Local agent harness checkpoints (not for remote)
+.cursor/state/
