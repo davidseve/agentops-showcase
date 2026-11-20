@@ -103,7 +103,7 @@ Use `demo-enable-guardrails` skill:
 ./scripts/demo-enable-guardrails.sh
 ```
 
-**Say:** OpenClaw still calls `inference.local`; only the backend changes.
+**Say:** OpenClaw still calls the same baseUrl; only the attached OpenShell provider changes (`maas-direct` → `maas-guardrailed`).
 
 ### Test D (after)
 

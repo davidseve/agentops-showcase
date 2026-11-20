@@ -49,13 +49,16 @@ Pin every operator, Helm chart, and container image to an explicit version. Upgr
 
 | Component | Pinned version | Where enforced |
 |---|---|---|
-| RHOAI operator | channel `stable-3.4`, `installPlanApproval: Manual` (auto-approved in Makefile) | `deploy/helm/operators/values.yaml` — CSV not pinned to a specific version yet |
-| OpenShell OCI chart (gateway) | `0.0.83` | `deploy/helm/openshell/Chart.yaml` (`dependencies[].version`) + committed `Chart.lock` — the actual, enforced pin (moved here 2026-08-05, see note below; previously a Makefile variable, and briefly a dead, unenforced `dependencies:` entry before that) |
+| RHOAI operator | channel `stable-3.5`, CSV `rhods-operator.3.5.2`, `installPlanApproval: Manual` (auto-approved in Makefile) | `deploy/helm/operators/values.yaml` — CSV confirmed on `redhat-operators` catalog 2026-10-28 |
+| OpenShell OCI chart (gateway) | `0.1.6` | `deploy/helm/openshell/Chart.yaml` (`dependencies[].version`) + committed `Chart.lock` |
 | Agent Sandbox Operator (OLM) | channel `preview-0.9`, CSV `agent-sandbox-operator.v0.9.0` | `deploy/helm/operators/values.yaml` — sole source of controller/router/CRDs (OSC 1.13 TP; raw upstream manifest retired 2026-08-06) |
-| OpenClaw (npm, in-sandbox) | `2026.6.34` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
+| OpenClaw (npm, in-sandbox) | `2026.10.8` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
+| Sandbox base image | `docker.io/library/node:24.22-bookworm` | `scripts/launch-openclaw.sh` (`OPENCLAW_SANDBOX_IMAGE`) — OpenShell Community catalog retired; OpenClaw `2026.10.8` engines require Node `>=24.22.1` (current `ubi9/nodejs-24` tags still ship `24.21.x`) |
 | `@mlflow/mlflow-openclaw` (npm, in-sandbox) | `0.2.0-rc.0` | `scripts/launch-openclaw.sh` |
 | Dependent operators | Agent Sandbox: CSV `agent-sandbox-operator.v0.9.0` (see table above); TrustyAI via RHOAI DSC | `deploy/helm/operators/values.yaml`, `deploy/helm/platform/values.yaml` |
 | Container images | digest where possible, tag as fallback | `deploy/` values files |
+
+**Bump 2026-10-28 (new cluster target):** RHOAI `stable-3.4` → `stable-3.5` (CSV pin added — Full Support for 3.4 ends 2026-11-16); OpenShell chart `0.0.83` → `0.1.6` (values schema rewrite + OpenShift SCC overlay; managed `inference.local` routes removed — sandbox provider profiles via `scripts/openshell-inference.sh`); OpenClaw `2026.6.34` → `2026.10.8` with Node preflight, Control UI device pairing (`scripts/openclaw-approve-pending-devices.sh`), and `gateway.terminal.enabled: false` restored in `config/openclaw.json.tpl`. The retired OpenShell Community `openclaw` image still ships Node `22.22.1` and cannot run `2026.10.8`; launch defaults to `docker.io/library/node:24.22-bookworm` because current UBI Node 24 tags remain below the `>=24.22.1` engine floor.
 
 **Reviewed and not applicable (Aug 2026 OSC 1.13 blog):** Confidential AI on bare metal GA, Red Hat build of Trustee 1.2, and post-quantum attestation readiness — this project does not use Trustee or confidential computing. Tracked only so future readers know the release was evaluated.
 
@@ -75,16 +78,10 @@ hypothetical, and a reminder that reference-project pins can't be copied
 blindly when the runtime environment differs (see also ADR-0011's `auth.mode`
 investigation for the same lesson applied to config, not just versions).
 
-**Follow-on config gap**: `2026.6.34`'s `gateway` schema has no `terminal`
-property at all (confirmed via `openclaw config schema`) — it's a
-`2026.7.x`-only hardening knob (`gateway.terminal.enabled: false`, disables
-the gateway's built-in web terminal) that the reference project sets and
-we copied verbatim. On `2026.6.34` the runtime's strict Zod validation
-rejects it outright (`gateway: Invalid input`, only surfaced at actual
-gateway startup — `openclaw doctor` does not catch it), so it was removed
-from `config/openclaw.json.tpl`. **TODO**: re-add `gateway.terminal.enabled:
-false` once the sandbox base image ships Node `>=22.22.3` and `OPENCLAW_PIN`
-can move to `2026.7.1`+.
+**Follow-on config gap (resolved 2026-10-28)**: `gateway.terminal.enabled:
+false` was removed for `2026.6.34` (schema had no `terminal` key). With
+`OPENCLAW_PIN=2026.10.8` and a Node 24 sandbox image, it is restored in
+`config/openclaw.json.tpl`.
 
 **Found a self-contradicting pin during a from-scratch redeploy test (2026-08-05)**:
 this ADR, `docs/stack-decisions.md`, and `docs/openshell-installation.md` all

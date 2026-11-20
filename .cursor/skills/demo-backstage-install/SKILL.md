@@ -68,7 +68,7 @@ VERIFY_PROFILE=demo ./scripts/verify.sh
 | NeMo Guardrails CR | Ready (not in live inference path) |
 | OpenShell gateway | Connected |
 | OpenClaw sandbox | `default.yaml` — MLflow-only egress; google.com blocked |
-| Inference | `inference.local` → MaaS direct |
+| Inference | `maas-direct` provider attached → MaaS |
 | MLflow tracing | On from first token |
 
 Control UI: `https://openclaw-gw--openclaw-ui.<APPS_DOMAIN>/`

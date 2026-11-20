@@ -126,7 +126,7 @@ The installer wraps the [official NVIDIA OpenShell install script](#macos-manual
 |---|---|---|
 | `--help` | — | Show usage |
 | `--dry-run` | off | Print planned actions without making changes |
-| `OPENSHELL_VERSION` | latest | Pin OpenShell release (e.g. `0.0.58`) |
+| `OPENSHELL_VERSION` | latest | Pin OpenShell release (e.g. `v0.1.6`) |
 | `OPENSHELL_DRIVER` | `podman` | Compute driver: `podman`, `docker`, or `vm` |
 | `SKIP_PODMAN` | `0` | Set to `1` to skip Podman install and machine setup |
 | `LOCAL_GATEWAY_URL` | `https://127.0.0.1:17670` | Gateway endpoint to register |
@@ -451,7 +451,7 @@ Provider setup: [Manage Providers](https://docs.nvidia.com/openshell/latest/how-
 
 ## OpenShift / RHOAI cluster deployment
 
-Deploy the OpenShell gateway on OpenShift as a **single Helm release** (`openshell`, namespace `openshell`). The wrapper chart [`deploy/helm/openshell/`](../deploy/helm/openshell/) declares the upstream OCI chart as a real Helm subchart dependency (pinned `0.0.83` in `Chart.yaml` / `Chart.lock`). For the full Agent Sandbox + OpenShell + OpenClaw architecture and launch flow, see [Agent Sandbox and OpenShell — How It Works](AGENT-SANDBOX-AND-OPENSHELL.md). For RHOAI platform bootstrap (prerequisite), see [cluster-bootstrap.md](cluster-bootstrap.md).
+Deploy the OpenShell gateway on OpenShift as a **single Helm release** (`openshell`, namespace `openshell`). The wrapper chart [`deploy/helm/openshell/`](../deploy/helm/openshell/) declares the upstream OCI chart as a real Helm subchart dependency (pinned `0.1.6` in `Chart.yaml` / `Chart.lock`). For the full Agent Sandbox + OpenShell + OpenClaw architecture and launch flow, see [Agent Sandbox and OpenShell — How It Works](AGENT-SANDBOX-AND-OPENSHELL.md). For RHOAI platform bootstrap (prerequisite), see [cluster-bootstrap.md](cluster-bootstrap.md).
 
 > **Experimental**: the Kubernetes/OpenShift deployment path is under active development upstream. Pin chart and image versions deliberately ([ADR-0006](adr/0006-explicit-version-pinning.md)).
 
@@ -616,10 +616,12 @@ Expected: `Status: Connected`.
 
 | Artifact | Pinned value |
 |---|---|
-| Wrapper chart | `agentops-openshell:0.3.0` (`deploy/helm/openshell/`) |
-| Upstream OCI chart | `oci://ghcr.io/nvidia/openshell` chart `helm-chart:0.0.83` — `Chart.yaml` `dependencies[].version` + `Chart.lock` |
+| Wrapper chart | `agentops-openshell:0.4.0` (`deploy/helm/openshell/`) |
+| Upstream OCI chart | `oci://ghcr.io/nvidia/openshell` chart `helm-chart:0.1.6` — `Chart.yaml` `dependencies[].version` + `Chart.lock` |
 | Agent Sandbox Operator | channel `preview-0.9`, CSV `agent-sandbox-operator.v0.9.0` (`deploy/helm/operators/values.yaml`) |
 | UI proxy chart | `openclaw-ui-proxy:0.1.0` (`deploy/helm/openclaw-ui-proxy/`) |
+| OpenClaw (npm, in-sandbox) | `2026.10.8` (`OPENCLAW_PIN` in `scripts/launch-openclaw.sh`) |
+| Sandbox base image | `docker.io/library/node:24.22-bookworm` (`OPENCLAW_SANDBOX_IMAGE`) |
 
 Bump versions deliberately and re-test on the target cluster before updating manifests ([ADR-0006](adr/0006-explicit-version-pinning.md)).
 

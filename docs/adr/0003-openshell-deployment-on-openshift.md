@@ -38,7 +38,7 @@ The original deployment used a hybrid approach: a thin Helm wrapper chart for th
 ### Option 2: OpenShell on OpenShift via Helm chart
 
 - **Pros:** Demonstrates agent sandboxing on the target platform; uses Kubernetes driver with Agent Sandbox; TLS via certgen hook.
-- **Cons:** Requires privileged SCC for the sandbox service account; chart `0.0.83` is pre-1.0.
+- **Cons:** Requires privileged SCC for the sandbox service account; chart `0.1.6` is still pre-1.0.
 
 ### Option 3: Helm chart with namespace and SCC managed declaratively (chosen)
 
@@ -98,7 +98,7 @@ Out of scope for this decision (reviewed against the Aug 2026 Red Hat blog, not 
 ### Negative
 
 - Privileged SCC is required, which may not be acceptable in all production environments.
-- Chart `0.0.83` is pre-1.0 and may introduce breaking changes.
+- Chart `0.1.6` is still pre-1.0 and may introduce breaking changes.
 - Agent Sandbox Operator is Technology Preview (OpenShift sandboxed containers 1.13) and requires OCP 4.19+.
 - Teardown of OpenShell (`undeploy-openshell`) does **not** remove the shared Agent Sandbox Operator — that lives with `cleanup-orphans` / `undeploy-all`.
 
@@ -106,8 +106,8 @@ Out of scope for this decision (reviewed against the Aug 2026 Red Hat blog, not 
 
 | Component | Pinned version | Where enforced |
 |---|---|---|
-| OpenShell OCI chart (gateway) | `0.0.83` | `deploy/helm/openshell/Chart.yaml` (`dependencies[].version`) + committed `Chart.lock` (digest-pinned) — see ADR-0006 for the history of this pin living in the wrong place (a Makefile variable, then briefly a dead dependency) before landing here |
-| Wrapper chart | `0.3.0` | `deploy/helm/openshell/Chart.yaml` |
+| OpenShell OCI chart (gateway) | `0.1.6` | `deploy/helm/openshell/Chart.yaml` (`dependencies[].version`) + committed `Chart.lock` (digest-pinned) |
+| Wrapper chart | `0.4.0` | `deploy/helm/openshell/Chart.yaml` |
 | Agent Sandbox Operator (OLM) | `preview-0.9` / CSV `agent-sandbox-operator.v0.9.0` (package `agent-sandbox-operator`) | `deploy/helm/operators/values.yaml` — sole source of controller + router + CRDs (OSC 1.13 TP) |
 
 ## Chart bugs found and fixed during a from-scratch redeploy (2026-08-05)
@@ -264,7 +264,7 @@ take effect, same as any other mTLS-affecting change.
 
 ## Validation
 
-Validated on OpenShift with chart `0.0.83`, TLS + certgen hook, SCC via Helm RoleBinding, and post-install mTLS client bundle sync to the local CLI (`scripts/openshift-openshell-sync-mtls.sh`). Canonical architecture and procedure: [AGENT-SANDBOX-AND-OPENSHELL.md](../AGENT-SANDBOX-AND-OPENSHELL.md). Deploy commands: `deploy/Makefile` targets `deploy-openshell` and `deploy-openclaw-ui-proxy`.
+Previously validated on OpenShift with chart `0.0.83`, TLS + certgen hook, SCC via Helm RoleBinding, and post-install mTLS client bundle sync to the local CLI (`scripts/openshift-openshell-sync-mtls.sh`). Chart pin moved to `0.1.6` (wrapper `0.4.0`) on 2026-10-28 for a new-cluster target — **cluster re-validation pending**. OpenShell `0.1.6` removes managed `inference.local` routes; this demo attaches provider profiles via `scripts/openshell-inference.sh` (`maas-direct` / `maas-guardrailed`). Canonical architecture and procedure: [AGENT-SANDBOX-AND-OPENSHELL.md](../AGENT-SANDBOX-AND-OPENSHELL.md). Deploy commands: `deploy/Makefile` targets `deploy-openshell` and `deploy-openclaw-ui-proxy`.
 
 Post-install verification:
 

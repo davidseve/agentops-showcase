@@ -17,14 +17,18 @@ This project demonstrates a complete enterprise-grade platform for deploying, se
 
 ## Version Pinning Policy
 
-All operators and components are deployed with **explicit pinned versions**. We upgrade deliberately and test before bumping. No automatic channel updates.
+All operators and components are deployed with **explicit pinned versions**. We upgrade deliberately and test before bumping. No automatic channel updates. Canonical table: [ADR-0006](docs/adr/0006-explicit-version-pinning.md).
 
-- RHOAI operator: pinned to specific CSV version
-- All dependent operators: pinned to specific CSV version
-- Helm chart versions: locked in `Chart.lock`
-- Container images: referenced by digest where possible, tag as fallback
+| Component | Current pin | Enforced in |
+|---|---|---|
+| RHOAI operator | `stable-3.5` / CSV `rhods-operator.3.5.2` | `deploy/helm/operators/values.yaml` |
+| Agent Sandbox Operator | `preview-0.9` / CSV `v0.9.0` | `deploy/helm/operators/values.yaml` |
+| OpenShell OCI chart | `0.1.6` | `deploy/helm/openshell/Chart.yaml` + `Chart.lock` |
+| OpenClaw (npm) | `2026.10.8` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
+| Sandbox base image | `docker.io/library/node:24.22-bookworm` | `scripts/launch-openclaw.sh` (`OPENCLAW_SANDBOX_IMAGE`) |
+| `@mlflow/mlflow-openclaw` | `0.2.0-rc.0` | `scripts/launch-openclaw.sh` |
 
-This prevents unexpected breakage from upstream releases. Version bumps are tracked as explicit commits in this repo.
+Helm chart versions are locked in `Chart.lock`; container images use digest where possible, tag as fallback. Version bumps are tracked as explicit commits in this repo.
 
 ## Architecture
 
@@ -43,7 +47,7 @@ The demo implements the Red Hat AI Agentic Strategy 2026 platform stack:
 │  OpenShell (sandbox)   │ MCP Gateway (nice-to-have)         │
 ├─────────────────────────────────────────────────────────────┤
 │  INFERENCE LAYER                                            │
-│  OpenShell inference.local → MaaS (model serving)           │
+│  OpenShell provider profiles → MaaS / NeMo (model serving)  │
 ├─────────────────────────────────────────────────────────────┤
 │  INFRASTRUCTURE                                             │
 │  OpenShift + RHOAI 3.x (demo.redhat.com / RHPDS)            │
@@ -58,7 +62,7 @@ The demo implements the Red Hat AI Agentic Strategy 2026 platform stack:
 |---|---|---|
 | Infrastructure | OpenShift (demo.redhat.com/RHPDS) | Container platform |
 | AI Platform | RHOAI 3.x (pinned version) | ML/AI platform on OpenShift |
-| Model Serving | External MaaS via OpenShell inference router | LLM inference (`inference.local` → MaaS) |
+| Model Serving | External MaaS via OpenShell provider profiles | LLM inference (`maas-direct` / `maas-guardrailed` → MaaS/NeMo) |
 | LLM | External MaaS | Default model `claude-sonnet-4-6` (override via `INFERENCE_MODEL`); requires tool-calling |
 | Guardrails | NeMo Guardrails via TrustyAI | Deployed through TrustyAI operator on OCP |
 | Sandbox | OpenShell | Agent execution isolation, zero-trust sandboxing |
@@ -91,7 +95,7 @@ This maps demo features to specific Red Hat products/components:
 | Guardrails | NeMo Guardrails (NVIDIA partnership) | Deployed via TrustyAI operator on OCP |
 | Agent harness | OpenClaw (BYOA) | Runs in OpenShell sandbox via `launch-openclaw.sh` |
 | Agent Sandboxing | OpenShell | Sandboxed execution environment |
-| Model Serving | MaaS via OpenShell inference router | inference.local → MaaS external endpoint |
+| Model Serving | MaaS via OpenShell provider profiles | Attached provider injects API key for authorized hosts |
 | Red Teaming | RHOAI - EvalHub | GARC integration (nice-to-have) |
 | Cost Governance | MaaS Dashboard | Token billing/showback (nice-to-have) |
 
@@ -206,6 +210,8 @@ agentops-showcase/
 ├── scripts/
 │   ├── cluster-lifecycle.sh       # deploy / verify / full / teardown / status / preflight
 │   ├── verify.sh                  # Layered validation (Makefile + Playwright)
+│   ├── validate-openclaw-session.sh # Gateway sessions.list + FTS5 (UI chat readiness)
+│   ├── openclaw-approve-pending-devices.sh # Auto-approve Control UI device pairing (2026.10+)
 │   ├── common.sh                  # Shared helpers (APPS_DOMAIN, secrets, logging)
 │   ├── install-openshell.sh       # OpenShell CLI/gateway + Podman stack (macOS, Linux)
 │   ├── uninstall-openshell.sh     # Remove local OpenShell stack (macOS, Linux)

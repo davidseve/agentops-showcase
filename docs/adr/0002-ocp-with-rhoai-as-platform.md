@@ -34,7 +34,7 @@ Red Hat OpenShift AI (RHOAI) is an add-on to OpenShift Container Platform (OCP) 
 
 - **Pros:** Full operator-managed AI stack; DataScienceCluster CRD orchestrates MLflow, TrustyAI, and model serving; Red Hat supported; available on demo.redhat.com/RHPDS; aligns with BYOA strategy.
 - **Cons:** Requires RHOAI operator subscription; tied to RHOAI release cadence.
-- **GA / support status:** GA — [RHOAI 3.4 docs](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/), [supported configs](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
+- **GA / support status:** GA — [RHOAI 3.5 docs](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/), [supported configs](https://access.redhat.com/articles/rhoai-supported-configs-3.x).
 
 ## Decision
 
@@ -62,7 +62,7 @@ This is the foundation that every other ADR builds upon: OpenShell ([ADR-0003](0
 | Component | Pinned version | Where enforced |
 |---|---|---|
 | OCP | 4.x (demo.redhat.com provisioned) | Cluster provision |
-| RHOAI operator | <!-- TODO: pin CSV --> | `deploy/helm/` Subscription |
+| RHOAI operator | channel `stable-3.5`, CSV `rhods-operator.3.5.2` | `deploy/helm/operators/values.yaml` |
 
 ## Demo Impact
 

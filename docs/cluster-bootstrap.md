@@ -204,7 +204,7 @@ make demo            # platform + OpenShell + OpenClaw + verify
 | 1c | `deploy-platform` | `rhoai-platform` | `adopt-dashboard-config` (before and after Helm), `OdhDashboardConfig` CRD, `odh-dashboard-config` singleton |
 | 2 | `deploy-database` | `rhoai-database` | — |
 | 3 | `wait-mlflow-crd` → `deploy-mlflow` | `rhoai-mlflow` | `mlflows.mlflow.opendatahub.io` CRD |
-| 4 | `wait-evalhub-crd` → `deploy-evalhub` | `rhoai-evalhub` | `evalhubs.trustyai.opendatahub.io` CRD |
+| 4 | `wait-evalhub-crd` → `wait-trustyai-webhook` → `deploy-evalhub` | `rhoai-evalhub` | EvalHub CRD + TrustyAI conversion webhook endpoints |
 
 These waits are **required** for a reliable install. Without them, Helm fails with missing CRDs or unprocessed finalizers.
 
@@ -377,12 +377,21 @@ make -C deploy undeploy-everything
 
 | Step | Make target | What it does |
 |---|---|---|
-| 1 | `undeploy-apps` | Helm uninstall: evalhub, mlflow, database, platform |
-| 2 | `purge-dsci` | Delete DSCInitialization while operator can still process finalizers |
-| 3 | `undeploy-operators` | Helm uninstall: operators |
-| 4 | `cleanup-orphans` | Remove residual subscription/CSV, orphan deployments, and namespaces |
+| 1 | `undeploy-apps` | Helm uninstall evalhub/mlflow → **`purge-mlflow-instances`** → database → platform |
+| 2 | `purge-mlflow-operator` | Wait for / force-remove Terminating `MLflowOperator` (protection finalizer) |
+| 3 | `purge-dsci` | Delete DSCInitialization while operator can still process finalizers |
+| 4 | `undeploy-operators` | Helm uninstall: operators |
+| 5 | `cleanup-orphans` | Residual subscription/CSV, namespaces, orphan KServe/ODH webhooks |
 
-The order is **critical**: DSCI must be deleted before the operator CSV is removed. If the operator is gone first, the DSCI finalizer cannot be processed and gets stuck in `Terminating`. The Makefile enforces this order and includes a finalizer patch fallback if the DSCI delete times out.
+Two finalizer orders matter:
+
+1. **DSCI** before the RHOAI operator CSV (otherwise DSCI sticks in `Terminating`).
+2. **`MLflow` instance CRs** before / while `MLflowOperator` deletes (otherwise the next
+   `deploy-all` deadlocks: operator blocks delete while instances exist; new instances
+   will not reconcile while the operator is deleting). Observed 2026-10-30 on sandbox3406.
+
+The Makefile enforces both and strips the MLflowOperator protection finalizer if the
+controller is already gone. Do not start a fresh install until `validate-cleanup` passes.
 
 ### Validate cleanup
 
@@ -397,6 +406,7 @@ make -C deploy validate-cleanup
 - No `rhoai-*` Helm releases remain
 - No OpenShell / openclaw-ui-proxy releases
 - No DSCInitialization or DataScienceCluster resources
+- **No `MLflow` or `MLflowOperator` CRs** (deadlock guard)
 - Demo namespaces removed (`redhat-ods-operator`, `redhat-ods-applications`, `redhat-ods-monitoring`, `evaluation`, `models-as-a-service`, `rhoai-model-registries`, `agent-sandbox-system`, `openshell`)
 
 Wait ~2 minutes after full cleanup before re-bootstrapping to allow namespaces to finish terminating.
@@ -407,7 +417,7 @@ All manifests live under [`deploy/helm/`](../deploy/helm/):
 
 | Chart | Release name | Purpose |
 |---|---|---|
-| `helm/operators` | `rhoai-operators` | RHOAI + Agent Sandbox operator subscriptions (`stable-3.4` / `preview-0.9`) |
+| `helm/operators` | `rhoai-operators` | RHOAI + Agent Sandbox operator subscriptions (`stable-3.5` / `preview-0.9`) |
 | `helm/platform` | `rhoai-platform` | DataScienceCluster + Dashboard config |
 | `helm/database` | `rhoai-database` | PostgreSQL for MLflow and EvalHub |
 | `helm/mlflow` | `rhoai-mlflow` | MLflow CR, route, DB secret |
@@ -426,9 +436,12 @@ All operators and components use **explicit pinned versions**. We upgrade delibe
 
 | Setting | Current value | Location |
 |---|---|---|
-| RHOAI operator channel | `stable-3.4` | `deploy/helm/operators/values.yaml` |
-| Agent Sandbox channel | `preview-0.9` | `deploy/helm/operators/values.yaml` |
-| Operator chart appVersion | `3.4` | `deploy/helm/operators/Chart.yaml` |
+| RHOAI operator channel | `stable-3.5` (CSV `rhods-operator.3.5.2`) | `deploy/helm/operators/values.yaml` |
+| Agent Sandbox channel | `preview-0.9` (CSV `agent-sandbox-operator.v0.9.0`) | `deploy/helm/operators/values.yaml` |
+| Operator chart appVersion | `3.5` | `deploy/helm/operators/Chart.yaml` |
+| OpenShell OCI chart | `0.1.6` | `deploy/helm/openshell/Chart.yaml` + `Chart.lock` |
+| OpenClaw (npm, in-sandbox) | `2026.10.8` | `scripts/launch-openclaw.sh` (`OPENCLAW_PIN`) |
+| Sandbox base image | `docker.io/library/node:24.22-bookworm` | `scripts/launch-openclaw.sh` (`OPENCLAW_SANDBOX_IMAGE`) |
 | PostgreSQL image | `registry.redhat.io/rhel9/postgresql-16:latest` | `deploy/helm/database/values.yaml` |
 
 Bump versions deliberately and re-test on the target cluster before updating manifests. See [AGENTS.md](../AGENTS.md) for the full version pinning policy.
@@ -443,7 +456,8 @@ Only use these steps when `make deploy-all` or `make validate` fails. Do not run
 | `OdhDashboardConfig` conflict | Operator auto-created resource before Helm | Handled by `adopt-dashboard-config` in `deploy-platform`; see below if interrupted |
 | DSC phase not Ready | Components still reconciling | `sleep 60 && make -C deploy validate` |
 | DSCI stuck in Terminating after cleanup | Operator removed before DSCI | `oc patch dscinitialization default-dsci --type=merge -p '{"metadata":{"finalizers":[]}}'` |
-| Namespace stuck in Terminating | Residual finalizers | See [cluster-cleanup skill](../.cursor/skills/cluster-cleanup/SKILL.md) namespace cleanup |
+| MLflow `Available=False` after fresh install / experiment Job curl exit 6 | Leftover Terminating `MLflowOperator` + new `MLflow` CR deadlock | `make -C deploy purge-mlflow-instances purge-mlflow-operator` then re-run `deploy-mlflow`; see [cluster-cleanup](../.cursor/skills/cluster-cleanup/SKILL.md) |
+| Namespace stuck in Terminating | Residual finalizers or orphan KServe webhooks | `cleanup-orphans` deletes known webhooks; see [cluster-cleanup skill](../.cursor/skills/cluster-cleanup/SKILL.md) namespace cleanup |
 | Orphan pods after cleanup | Dashboard redirect, maas-controller | `oc delete deployment --all -n redhat-ods-applications` |
 
 ### Platform: OdhDashboardConfig conflict
@@ -475,7 +489,7 @@ cd deploy
 make deploy-platform    # includes wait-operators + adopt-dashboard-config
 make deploy-database
 make deploy-mlflow      # includes wait-mlflow-crd
-make deploy-evalhub     # includes wait-evalhub-crd
+make deploy-evalhub     # includes wait-evalhub-crd + wait-trustyai-webhook
 make validate
 ```
 

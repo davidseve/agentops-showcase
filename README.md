@@ -33,7 +33,7 @@ flowchart TB
   end
 
   subgraph INFERENCE["INFERENCE LAYER"]
-    IR["inference.local → NeMo → MaaS → LLM"]
+    IR["provider profile → NeMo → MaaS → LLM"]
   end
 
   subgraph INFRA["INFRASTRUCTURE"]
@@ -48,7 +48,7 @@ flowchart TB
 | **User** | ![Control UI](https://img.shields.io/badge/Control-UI-0066cc?style=flat-square) | Control UI via `openclaw-ui-proxy` (nginx mTLS bridge + password auth) |
 | **Agent (BYOA)** | ![BYOA](https://img.shields.io/badge/Agent-BYOA-e00?style=flat-square) | OpenClaw in Agent Sandbox — interchangeable harness; Landlock + egress policies |
 | **Platform** | ![Red Hat](https://img.shields.io/badge/Platform-Red_Hat-ee0000?style=flat-square) ![MLflow](https://img.shields.io/badge/Traces-MLflow-ffc107?style=flat-square&labelColor=333) | OpenShell · MLflow · NeMo Guardrails (TrustyAI) |
-| **Inference** | ![MaaS](https://img.shields.io/badge/Inference-MaaS-0066cc?style=flat-square) | `inference.local` → MaaS — router injects API key; credentials never enter the sandbox |
+| **Inference** | ![MaaS](https://img.shields.io/badge/Inference-MaaS-0066cc?style=flat-square) | OpenShell provider profile → MaaS/NeMo — gateway injects API key for authorized hosts; credentials never enter the sandbox |
 | **Infrastructure** | ![RHOAI](https://img.shields.io/badge/OpenShift-RHOAI-ee0000?style=flat-square) | OCP + RHOAI 3.x — pinned operators; Agent Sandbox via OLM |
 
 > **BYOA:** the agent harness is interchangeable; the platform stack works regardless of framework.
@@ -62,7 +62,7 @@ That guide walks through the full stack — Agent Sandbox Operator, OpenShell ga
 
 ## Version Pinning
 
-All operators and components use **explicit pinned versions**. We upgrade deliberately and test before bumping to avoid surprises from upstream releases. See [AGENTS.md](AGENTS.md) for the full version pinning policy.
+All operators and components use **explicit pinned versions**. We upgrade deliberately and test before bumping to avoid surprises from upstream releases. Current pins (RHOAI `3.5.2`, OpenShell chart `0.1.6`, OpenClaw `2026.10.8`, sandbox image `node:24.22-bookworm`): [AGENTS.md § Version Pinning](AGENTS.md#version-pinning-policy) and [ADR-0006](docs/adr/0006-explicit-version-pinning.md).
 
 ## Demo Highlights
 
